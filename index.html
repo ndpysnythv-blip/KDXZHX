@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小天才6点数据线 - 官方网站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#111111',
+                        secondary: '#333333',
+                        light: '#f9f9f9',
+                        accent: '#666666',
+                    },
+                    fontFamily: {
+                        sanfrancisco: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.8s ease forwards',
+                        'fade-in-up-delay-1': 'fadeInUp 0.8s ease 0.2s forwards',
+                        'fade-in-up-delay-2': 'fadeInUp 0.8s ease 0.4s forwards',
+                        'fade-in-up-delay-3': 'fadeInUp 0.8s ease 0.6s forwards',
+                        'pulse-light': 'pulseLight 1.5s infinite',
+                        'scale-hover': 'scaleHover 0.3s ease forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        pulseLight: {
+                            '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+                            '50%': { opacity: '0.95', transform: 'scale(1.02)' },
+                        },
+                        scaleHover: {
+                            '0%': { transform: 'scale(1)' },
+                            '100%': { transform: 'scale(1.02)' },
+                        }
+                    }
+                },
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .click-animation {
+                @apply transition-all duration-300 active:scale-95 active:shadow-md hover:shadow-lg hover:bg-accent/10;
+            }
+            .animate-hidden {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            .big-button {
+                @apply py-6 px-8 text-xl font-semibold rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:animate-scale-hover bg-white text-primary border-2 border-primary;
+            }
+            .link-display {
+                @apply mt-8 p-4 bg-white border border-gray-200 rounded-lg shadow-md text-left text-primary animate-fade-in-up;
+            }
+            .breathing-border {
+                animation: breathingBorder 2s ease-in-out infinite;
+            }
+            @keyframes breathingBorder {
+                0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+                70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+            }
+        }
+    </style>
+</head>
+
+<body class="font-sanfrancisco bg-light text-primary antialiased">
+    <nav class="fixed top-0 w-full bg-primary/90 backdrop-blur-md text-white z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="text-2xl font-bold">KDXZHX</div>
+                <div class="flex items-center space-x-6">
+                    <a href="#home" class="click-animation">首页</a>
+                    <a href="#consult" class="click-animation">商品咨询</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section id="home-page" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="flex flex-col lg:flex-row items-center lg:items-start gap-8 mb-8">
+            <div class="animate-hidden animate-fade-in-up w-full lg:w-1/2 flex justify-center">
+                <img 
+                    src="https://p11-flow-imagex-download-sign.byteimg.com/tos-cn-i-a9rns2rl98/2bdfe1af40aa42bc9db163c0c741c7ab.jpeg~tplv-a9rns2rl98-24:720:720.jpeg?lk3s=8e244e95&rcl=20260227221709D8FBCC194D9953079195&rrcfp=8a172a1a&x-expires=1772806630&x-signature=v0HelwiFLCWPgM4hBoxnEXStrvE%3D" 
+                    alt="小天才6点数据线" 
+                    class="max-w-lg rounded-lg shadow-xl object-contain filter grayscale-[0.1] hover:grayscale-0 transition-all duration-500"
+                >
+            </div>
+
+            <div class="w-full lg:w-1/2 flex flex-col">
+                <h1 class="text-3xl sm:text-4xl font-bold text-center lg:text-left mb-6 animate-hidden animate-fade-in-up-delay-1">小天才刷机6点数据线</h1>
+
+                <div class="space-y-5 animate-hidden animate-fade-in-up-delay-2 mb-8">
+                    <button 
+                        data-link="https://pan.quark.cn/s/9885035986db"
+                        class="block w-full big-button text-center click-animation"
+                    >
+                        <i class="fa-solid fa-file-pdf mr-3"></i>文件教程
+                    </button>
+                    
+                    <button 
+                        data-link="https://doubao.com/bot/m3oQnhCw"
+                        class="block w-full big-button text-center click-animation"
+                    >
+                        <i class="fa-solid fa-headset mr-3"></i>技术顾问
+                    </button>
+                    
+                    <button 
+                        data-link="https://pd.qq.com/s/x0hokagc?b=9"
+                        class="block w-full big-button text-center click-animation"
+                    >
+                        <i class="fa-solid fa-comments mr-3"></i>交流社区
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="link-display-area" class="link-display hidden max-w-4xl mx-auto">
+            <p class="font-medium mb-2">链接地址：</p>
+            <p id="link-text" class="break-all text-accent"></p>
+            <button id="copy-btn" class="mt-3 px-4 py-2 bg-primary text-white rounded-md click-animation">
+                <i class="fa-solid fa-copy mr-2"></i>复制链接
+            </button>
+        </div>
+
+        <div class="mt-16 text-center animate-hidden animate-fade-in-up-delay-3 flex justify-center items-center space-x-4">
+            <a href="#" id="warranty-btn" class="text-blue-600 hover:text-blue-800 transition-colors font-medium">
+                30天质保
+            </a>
+            <span class="text-gray-400">·</span>
+            <a href="#more-products" id="more-products-btn" class="text-blue-600 hover:text-blue-800 transition-colors font-medium">
+                更多商品
+            </a>
+        </div>
+    </section>
+
+    <section id="aftersales-page" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto hidden">
+        <div class="flex justify-between items-center mb-10">
+            <button id="back-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation">
+                <i class="fa-solid fa-arrow-left mr-2"></i>返回首页
+            </button>
+            <h2 class="text-3xl font-bold">售后申请</h2>
+            <div class="w-32"></div> <!-- 占位，保持标题居中 -->
+        </div>
+        <form id="aftersales-form" class="space-y-6">
+            <div>
+                <label class="block font-medium mb-2">选择售后方式</label>
+                <select id="aftersales-type" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <option value="">请选择</option>
+                    <option value="维修">维修</option>
+                    <option value="换新">换新</option>
+                    <option value="退货退款">退货退款</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">购买平台</label>
+                <select id="purchase-platform" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <option value="">请选择</option>
+                    <option value="淘宝">淘宝</option>
+                    <option value="闲鱼">闲鱼</option>
+                    <option value="支付宝">支付宝</option>
+                    <option value="微信">微信</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">订单编号</label>
+                <input type="text" id="order-number" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="请输入订单编号">
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">购买时间</label>
+                <input type="date" id="purchase-date" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">上传订单截图</label>
+                <input type="file" id="order-screenshot" accept="image/*" required class="w-full p-3 border border-gray-300 rounded-lg">
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">上传开箱视频（需要从开箱到测试的完整视频）</label>
+                <input type="file" id="unboxing-video" accept="video/*" multiple class="w-full p-3 border border-gray-300 rounded-lg">
+                <p class="text-sm text-gray-500 mt-1">可无限上传多个长视频</p>
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">上传数据线图片（请360度拍摄数据线的高清图片）</label>
+                <p class="text-sm text-gray-500 mb-2">请拍摄高清图片</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <input type="file" id="cable-front" accept="image/*" class="w-full p-2 border border-gray-300 rounded-lg">
+                        <p class="text-center text-sm mt-1">正面</p>
+                    </div>
+                    <div>
+                        <input type="file" id="cable-side" accept="image/*" class="w-full p-2 border border-gray-300 rounded-lg">
+                        <p class="text-center text-sm mt-1">侧面</p>
+                    </div>
+                    <div>
+                        <input type="file" id="cable-back" accept="image/*" class="w-full p-2 border border-gray-300 rounded-lg">
+                        <p class="text-center text-sm mt-1">探针处</p>
+                    </div>
+                    <div>
+                        <input type="file" id="cable-detail" accept="image/*" class="w-full p-2 border border-gray-300 rounded-lg">
+                        <p class="text-center text-sm mt-1">细节</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">其他补充</label>
+                <input type="file" id="additional-files" accept="image/*,video/*" multiple class="w-full p-3 border border-gray-300 rounded-lg">
+                <p class="text-sm text-gray-500 mt-1">可以上传多个图片或者视频</p>
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">问题描述</label>
+                <textarea id="problem-description" required rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="请描述具体遇到的问题"></textarea>
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2">地址信息</label>
+                <div class="grid grid-cols-3 gap-2 mb-2">
+                    <input type="text" id="province" required class="p-2 border border-gray-300 rounded-lg" placeholder="省份">
+                    <input type="text" id="city" required class="p-2 border border-gray-300 rounded-lg" placeholder="城市">
+                    <input type="text" id="district" required class="p-2 border border-gray-300 rounded-lg" placeholder="区县">
+                </div>
+                <input type="text" id="street-address" required class="w-full p-3 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="街道和详细地址">
+                <input type="tel" id="phone" required pattern="[0-9]{11}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="11位电话号码">
+            </div>
+
+            <div>
+                <label class="block font-medium mb-2 text-sm">地址自动识别</label>
+                <textarea id="address-parser" rows="2" class="w-full p-2 border border-gray-300 rounded-lg mb-2 focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="请粘贴完整的收货地址"></textarea>
+                <button type="button" id="parse-address-btn" class="px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation text-sm">
+                    识别地址
+                </button>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium">
+                提交
+            </button>
+        </form>
+    </section>
+
+    <div id="risk-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-lg mx-4">
+            <h3 class="text-xl font-bold mb-4">风险提示</h3>
+            <div id="risk-content" class="text-gray-700 mb-6 whitespace-pre-line"></div>
+            <button id="agree-risk-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium">
+                我已阅读并同意风险须知
+            </button>
+        </div>
+    </div>
+
+    <section id="preview-page" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto hidden">
+        <h2 class="text-3xl font-bold mb-6 text-center">请您点击保存图片后发送给购买客服进行审核</h2>
+        <div class="text-center mb-8">
+            <button id="save-image-btn" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium">
+                保存图片
+            </button>
+        </div>
+        
+        <div id="preview-content" class="bg-white p-8 rounded-xl shadow-lg">
+            <h3 class="text-xl font-bold mb-6 border-b pb-4">售后申请预览</h3>
+            <div id="preview-details" class="space-y-4"></div>
+        </div>
+
+        <div class="mt-8 bg-yellow-50 p-6 rounded-xl border border-yellow-200">
+            <div id="preview-risk-content" class="text-gray-700 mb-4 whitespace-pre-line"></div>
+            <div class="flex items-center text-green-600">
+                <i class="fa-solid fa-check-circle text-2xl mr-2"></i>
+                <span class="font-medium">我已阅读并同意</span>
+            </div>
+        </div>
+    </section>
+
+    <section id="more-products" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto hidden">
+        <div class="flex justify-between items-center mb-10">
+            <button id="back-from-products-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation">
+                <i class="fa-solid fa-arrow-left mr-2"></i>返回首页
+            </button>
+            <h2 class="text-3xl font-bold">更多商品</h2>
+            <div class="w-32"></div> <!-- 占位，保持标题居中 -->
+        </div>
+        
+        <div class="bg-white p-8 rounded-xl shadow-lg">
+            <div class="mb-6">
+                <a href="https://ur.alipay.com/_wYCU40lsY8GL9qvY4Qs0V" target="_blank" class="text-blue-600 hover:text-blue-800 transition-colors font-medium">
+                    小天才Z11数据线（后续补送文件教程） 180元
+                </a>
+            </div>
+            
+            <div class="whitespace-pre-line text-gray-700">
+1.使用微信手表版需要购买license码才能使用  15元 
+2.高清视频教程20元 
+*为了防止官方封，所有视频教程都会有点模糊 
+3.小天才Z11数据线 180元 
+4.全系列（不包含新品）破解文件  35元 
+购买联系客服
+            </div>
+        </div>
+    </section>
+
+    <section id="consult" class="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white rounded-xl shadow-lg animate-hidden animate-fade-in-up hidden">
+        <h2 class="text-3xl font-bold mb-10 text-center">商品咨询</h2>
+        <div class="space-y-6" id="faq-container">
+            <div class="bg-light p-6 rounded-lg">
+                <div class="max-w-3xl mx-auto text-center">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-6 tracking-tight">KDXZHX</h1>
+                    <p class="text-gray-600 text-lg md:text-xl mb-8">智能问答搜索，你的刷机技术顾问</p>
+                    
+                    <div class="relative mb-8">
+                        <input 
+                            type="text" 
+                            id="searchInput"
+                            placeholder="输入关键词搜索..."
+                            class="w-full py-4 px-6 rounded-xl border border-gray-300 focus:outline-none focus:border-blue-500 text-lg transition-all"
+                        >
+                        <button id="searchBtn" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-600 transition-colors">
+                            <i id="searchIcon" class="fa-solid fa-magnifying-glass text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">热门搜索</h3>
+                        <div class="flex flex-wrap gap-2" id="hotSearches">
+                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors">使用方法</button>
+                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors">9008模式</button>
+                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors">连接电脑</button>
+                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors">刷机教程</button>
+                            <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors">验证异常</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8 hidden" id="searchHistory">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-sm font-medium text-gray-500">搜索历史</h3>
+                            <button id="clearHistory" class="text-sm text-gray-400 hover:text-gray-600">清除</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2" id="historyContainer"></div>
+                    </div>
+                    
+                    <section id="resultsSection" class="max-w-4xl mx-auto hidden mt-8">
+                        <h2 class="text-2xl font-semibold mb-6 text-left">搜索结果</h2>
+                        <div id="resultsContainer" class="space-y-4"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center text-gray-600 text-sm border-t border-gray-200">
+        <p>© 2026 KDXZHX | 小天才6点数据线</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const animateElements = document.querySelectorAll('.animate-hidden');
+            animateElements.forEach(el => {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    el.classList.remove('animate-hidden');
+                }, 100);
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            const buttons = document.querySelectorAll('[data-link]');
+            const linkDisplayArea = document.getElementById('link-display-area');
+            const linkText = document.getElementById('link-text');
+            const copyBtn = document.getElementById('copy-btn');
+            
+            let currentLink = '';
+
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    currentLink = this.getAttribute('data-link');
+                    const buttonName = this.textContent.trim();
+                    
+                    window.open(currentLink, '_blank');
+                    linkDisplayArea.classList.remove('hidden');
+                    linkDisplayArea.classList.add('breathing-border');
+                    document.querySelector('#link-display-area .font-medium').textContent = buttonName + ' 链接地址：';
+                    linkText.textContent = currentLink;
+                    linkDisplayArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            });
+
+            copyBtn.addEventListener('click', async () => {
+                if (currentLink) {
+                    try {
+                        await navigator.clipboard.writeText(currentLink);
+                        copyBtn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>复制成功';
+                        setTimeout(() => {
+                            copyBtn.innerHTML = '<i class="fa-solid fa-copy mr-2"></i>复制链接';
+                        }, 2000);
+                    } catch (err) {
+                        alert('复制失败，请手动复制');
+                    }
+                }
+            });
+
+            const homePage = document.getElementById('home-page');
+            const aftersalesPage = document.getElementById('aftersales-page');
+            const previewPage = document.getElementById('preview-page');
+            const consultSection = document.getElementById('consult');
+            const warrantyBtn = document.getElementById('warranty-btn');
+            const aftersalesForm = document.getElementById('aftersales-form');
+            const riskModal = document.getElementById('risk-modal');
+            const riskContent = document.getElementById('risk-content');
+            const agreeRiskBtn = document.getElementById('agree-risk-btn');
+            const saveImageBtn = document.getElementById('save-image-btn');
+            const backBtn = document.getElementById('back-btn');
+
+            warrantyBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                homePage.classList.add('hidden');
+                consultSection.classList.add('hidden');
+                aftersalesPage.classList.remove('hidden');
+                previewPage.classList.add('hidden');
+                aftersalesPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            backBtn.addEventListener('click', () => {
+                aftersalesPage.classList.add('hidden');
+                previewPage.classList.add('hidden');
+                homePage.classList.remove('hidden');
+                consultSection.classList.remove('hidden');
+                homePage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            // 初始化显示首页和商品咨询页面
+            homePage.classList.remove('hidden');
+            consultSection.classList.remove('hidden');
+
+            aftersalesForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const aftersalesType = document.getElementById('aftersales-type').value;
+                const riskText = '售后申请通过后，我们将为您呼叫物流上门取件。\n\n商品将会进行返厂检测，如果确实为商品本身问题，我们将会为您进行' + aftersalesType + '。如果检测后发现商品无质量问题我们将到付退回，并且您可能需要支付相应运费。';
+                riskContent.textContent = riskText;
+                riskModal.classList.remove('hidden');
+            });
+
+            agreeRiskBtn.addEventListener('click', () => {
+                riskModal.classList.add('hidden');
+                aftersalesPage.classList.add('hidden');
+                previewPage.classList.remove('hidden');
+                
+                const aftersalesType = document.getElementById('aftersales-type').value;
+                const purchasePlatform = document.getElementById('purchase-platform').value;
+                const orderNumber = document.getElementById('order-number').value;
+                const purchaseDate = document.getElementById('purchase-date').value;
+                const problemDescription = document.getElementById('problem-description').value;
+                const province = document.getElementById('province').value;
+                const city = document.getElementById('city').value;
+                const district = document.getElementById('district').value;
+                const streetAddress = document.getElementById('street-address').value;
+                const phone = document.getElementById('phone').value;
+
+                const previewDetails = document.getElementById('preview-details');
+                previewDetails.innerHTML = '<div><span class="font-medium">售后方式：</span>' + aftersalesType + '</div><div><span class="font-medium">购买平台：</span>' + purchasePlatform + '</div><div><span class="font-medium">订单编号：</span>' + orderNumber + '</div><div><span class="font-medium">购买时间：</span>' + purchaseDate + '</div><div><span class="font-medium">问题描述：</span>' + problemDescription + '</div><div><span class="font-medium">收货地址：</span>' + province + city + district + streetAddress + '</div><div><span class="font-medium">联系电话：</span>' + phone + '</div>';
+
+                const previewRiskContent = document.getElementById('preview-risk-content');
+                previewRiskContent.textContent = '售后申请通过后，我们将为您呼叫物流上门取件。\n\n商品将会进行返厂检测，如果确实为商品本身问题，我们将会为您进行' + aftersalesType + '。如果检测后发现商品无质量问题我们将到付退回，并且您可能需要支付相应运费。';
+
+                previewPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            saveImageBtn.addEventListener('click', () => {
+                alert('保存功能需要后端支持，这里仅作为演示');
+            });
+
+            const provinceInput = document.getElementById('province');
+            const cityInput = document.getElementById('city');
+            const districtInput = document.getElementById('district');
+
+            const parseAddressBtn = document.getElementById('parse-address-btn');
+            const addressParser = document.getElementById('address-parser');
+
+            parseAddressBtn.addEventListener('click', function() {
+                const addressText = addressParser.value;
+                if (!addressText) {
+                    alert('请先粘贴地址信息');
+                    return;
+                }
+
+                const phoneMatch = addressText.match(/1[3-9]\d{9}/);
+                if (phoneMatch) {
+                    document.getElementById('phone').value = phoneMatch[0];
+                }
+
+                const provincePattern = /(北京市|上海市|天津市|重庆市|河北省|山西省|辽宁省|吉林省|黑龙江省|江苏省|浙江省|安徽省|福建省|江西省|山东省|河南省|湖北省|湖南省|广东省|海南省|四川省|贵州省|云南省|陕西省|甘肃省|青海省|台湾省|内蒙古自治区|广西壮族自治区|西藏自治区|宁夏回族自治区|新疆维吾尔自治区|香港特别行政区|澳门特别行政区)/;
+                const provinceMatch = addressText.match(provincePattern);
+                if (provinceMatch) {
+                    provinceInput.value = provinceMatch[0];
+                }
+
+                const cityPattern = /(市辖区|县|自治县|旗|自治旗|特区|林区|市|盟|自治盟)/;
+                const cityMatch = addressText.match(cityPattern);
+                if (cityMatch) {
+                    const cityIndex = addressText.indexOf(cityMatch[0]);
+                    if (cityIndex > 0) {
+                        let cityText = addressText.substring(provinceMatch ? provinceMatch.index + provinceMatch[0].length : 0, cityIndex + cityMatch[0].length);
+                        cityInput.value = cityText.trim();
+                    }
+                }
+
+                const districtPattern = /(区|县|自治县|旗|自治旗|街道|镇|乡|民族乡|苏木|民族苏木)/;
+                const districtMatch = addressText.match(districtPattern);
+                if (districtMatch) {
+                    const districtIndex = addressText.indexOf(districtMatch[0]);
+                    if (districtIndex > 0) {
+                        let districtText = addressText.substring(cityInput.value ? addressText.indexOf(cityInput.value) + cityInput.value.length : 0, districtIndex + districtMatch[0].length);
+                        districtInput.value = districtText.trim();
+                    }
+                }
+
+                let streetAddress = addressText;
+                if (provinceInput.value) {
+                    streetAddress = streetAddress.replace(provinceInput.value, '');
+                }
+                if (cityInput.value) {
+                    streetAddress = streetAddress.replace(cityInput.value, '');
+                }
+                if (districtInput.value) {
+                    streetAddress = streetAddress.replace(districtInput.value, '');
+                }
+                if (phoneMatch) {
+                    streetAddress = streetAddress.replace(phoneMatch[0], '');
+                }
+                streetAddress = streetAddress.replace(/[，,。.、\s]+/g, ' ').trim();
+                document.getElementById('street-address').value = streetAddress;
+            });
+
+            // 智能问答搜索功能
+            let qaData = [];
+            try {
+                qaData = JSON.parse(localStorage.getItem('kdxzhx_qa_data')) || [];
+            } catch (e) {
+                qaData = [];
+                localStorage.setItem('kdxzhx_qa_data', JSON.stringify([]));
+            }
+
+            // 预设的小天才问答数据
+            const presetQaData = [
+                {
+                    Q: "小天才6点数据线的使用方法/如何使用/怎么用",
+                    A: "将手表后面的SIM卡后盖拔开，把6点线的6根针对准上面的触点（线朝左边）用力插上即可【不可能存在插不上的情况】",
+                    image: null
+                },
+                {
+                    Q: "短接/9008/数据线背面按件是干什么的/9008模式怎么进入/电脑上不显示端口怎么办",
+                    A: "按照视频教程进入烧录连接手表页面时，请同时长按 数据线背部按键 和 手表电源键 进入9008模式(期间不要松手，直到电脑上显示连接成功)",
+                    image: "placeholder_image_2"
+                },
+                {
+                    Q: "小天才Z9 Z10刷机文件教程领取",
+                    A: "提取码:确收好评后找购买客服领取",
+                    image: "placeholder_image_3"
+                },
+                {
+                    Q: "验证异常",
+                    A: "是运行版本太低被官方云控了",
+                    image: null
+                },
+                {
+                    Q: "刷机电脑配置/系统要求（mac）",
+                    A: "只要电脑为W10以上系统即可，mac可能需安装虚拟机",
+                    image: null
+                },
+                {
+                    Q: "手表连接不上电脑",
+                    A: "请先确认您已按照视频教程下载并打开完每一份文件/应用，然后在短接页面下同时长按数据线背部按键和手表电源键进入9008模式。",
+                    image: null
+                },
+                {
+                    Q: "小天才6点数据线",
+                    A: `6点线主要是用来给手表刷机，root等，来安装微信 qq等第三方应用
+                    1.使用微信手表版需要购买license码才能使用  15元
+2.高清视频教程20元
+*为了防止官方封，所有视频教程都会有点模糊
+3.小天才Z11数据线 180元
+4.全系列（不包含新品）破解文件  35元
+购买请联系客服`,
+                    image: null
+                }
+            ];
+
+            // 自动导入预设数据
+            function importPresetData() {
+                const existingQuestions = qaData.map(item => item.Q);
+                let newDataAdded = false;
+                
+                presetQaData.forEach(presetItem => {
+                    if (!existingQuestions.includes(presetItem.Q)) {
+                        qaData.push(presetItem);
+                        newDataAdded = true;
+                    }
+                });
+                
+                if (newDataAdded) {
+                    localStorage.setItem('kdxzhx_qa_data', JSON.stringify(qaData));
+                }
+            }
+
+            // 简化版AI语义库
+            const synonymMap = {
+                "刷机": ["刷系统", "刷固件", "刷ROM", "刷机子"],
+                "怎么": ["如何", "怎样", "咋"],
+                "解决": ["处理", "搞定", "修复"],
+                "问题": ["故障", "错误", "异常"],
+                "教程": ["指南", "方法", "步骤"],
+                "安装": ["装", "配置"],
+                "删除": ["移除", "删掉"],
+                "恢复": ["还原", "复原"],
+                "备份": ["保存", "导出"]
+            };
+
+            // 核心搜索函数
+            function preprocessText(text) {
+                if (!text) return '';
+                const punctuation = /[！？。，；：""''()()【】{}、·~！@#￥%……&*（）——+=-]/g;
+                const space = /\s+/g;
+                return text.toLowerCase().replace(punctuation, '').replace(space, '');
+            }
+
+            function expandKeywords(text) {
+                if (!text) return '';
+                let expandedText = text;
+                Object.keys(synonymMap).forEach(key => {
+                    synonymMap[key].forEach(synonym => {
+                        expandedText = expandedText.replace(new RegExp(synonym, 'g'), key);
+                    });
+                });
+                return expandedText;
+            }
+
+            function calculateAISimilarity(keyword, target) {
+                const processedKeyword = preprocessText(keyword);
+                const processedTarget = preprocessText(target);
+                
+                const expandedKeyword = expandKeywords(processedKeyword);
+                const expandedTarget = expandKeywords(processedTarget);
+                
+                let matchCount = 0;
+                const maxLen = Math.max(expandedKeyword.length, expandedTarget.length);
+                if (maxLen === 0) return 0;
+                
+                for (let i = 0; i < Math.min(expandedKeyword.length, expandedTarget.length); i++) {
+                    if (expandedKeyword[i] === expandedTarget[i]) matchCount++;
+                }
+                let baseScore = matchCount / maxLen;
+                
+                if (expandedTarget.includes(expandedKeyword)) baseScore += 0.5;
+                
+                Object.keys(synonymMap).forEach(key => {
+                    if (expandedKeyword.includes(key) && expandedTarget.includes(key)) {
+                        baseScore += 0.2;
+                    }
+                });
+                
+                return Math.min(1, baseScore);
+            }
+
+            async function performSearch() {
+                const keyword = document.getElementById('searchInput').value.trim();
+                
+                if (!keyword) {
+                    alert('请输入搜索关键词');
+                    return;
+                }
+                
+                // 隐藏商品咨询页面的KDXZHX标题
+                const consultPageTitle = document.querySelector('#consult h1');
+                if (consultPageTitle) {
+                    consultPageTitle.style.opacity = '0';
+                    consultPageTitle.style.transition = 'opacity 0.3s ease';
+                }
+                
+                const loadingModal = document.createElement('div');
+                loadingModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+                loadingModal.innerHTML = `
+                    <div class="bg-white rounded-2xl p-10 w-full max-w-md">
+                        <h2 class="text-4xl font-bold mb-6 text-center">
+                            <span class="letter" style="animation-delay: 0.1s">K</span>
+                            <span class="letter" style="animation-delay: 0.2s">D</span>
+                            <span class="letter" style="animation-delay: 0.3s">X</span>
+                            <span class="letter" style="animation-delay: 0.4s">Z</span>
+                            <span class="letter" style="animation-delay: 0.5s">H</span>
+                            <span class="letter" style="animation-delay: 0.6s">X</span>
+                        </h2>
+                        <p class="text-gray-600 text-lg text-center">正在为你智能分析搜索内容...</p>
+                    </div>
+                `;
+                
+                // 添加字母显现动画样式
+                const style = document.createElement('style');
+                style.textContent = `
+                    .letter {
+                        opacity: 0;
+                        transform: translateY(20px);
+                        animation: fadeInUp 0.6s ease forwards;
+                    }
+                    @keyframes fadeInUp {
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                `;
+                loadingModal.appendChild(style);
+                
+                document.body.appendChild(loadingModal);
+                document.body.style.overflow = 'hidden';
+                
+                try {
+                    // 模拟搜索延迟
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    const matchedResults = qaData.map(item => {
+                        const qSimilarity = calculateAISimilarity(keyword, item.Q);
+                        const aSimilarity = calculateAISimilarity(keyword, item.A);
+                        const totalScore = (qSimilarity * 0.7) + (aSimilarity * 0.3);
+                        return { ...item, score: totalScore };
+                    })
+                    .filter(item => item.score > 0.1)
+                    .sort((a, b) => b.score - a.score);
+                    
+                    displayResults(matchedResults);
+                } catch (error) {
+                    console.error('搜索失败:', error);
+                    const resultsContainer = document.getElementById('resultsContainer');
+                    if (resultsContainer) {
+                        resultsContainer.innerHTML = `
+                            <div class="bg-white rounded-xl p-8 text-left">
+                                <i class="fa-solid fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
+                                <p class="text-gray-600 text-lg">搜索失败，请重试</p>
+                            </div>
+                        `;
+                    }
+                } finally {
+                    document.body.removeChild(loadingModal);
+                    document.body.style.overflow = '';
+                    // 恢复商品咨询页面的KDXZHX标题
+                    if (consultPageTitle) {
+                        consultPageTitle.style.opacity = '1';
+                    }
+                }
+            }
+
+            // 本地简单智能体
+            async function getAIResponse(prompt) {
+                // 模拟AI思考时间
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // 基于规则的简单智能体
+                const lowerPrompt = prompt.toLowerCase();
+                
+                // 常见问题和回复
+                const ruleBasedResponses = [
+                    {
+                        keywords: ['价格', '多少钱', '费用', '价位'],
+                        response: '小天才6点数据线的价格根据型号不同有所差异：\n1. 小天才6点数据线：基础款\n2. 小天才Z11数据线：180元\n\n其他相关产品价格：\n- 微信手表版license码：15元\n- 高清视频教程：20元\n- 全系列破解文件（不包含新品）：35元\n\n购买请联系客服获取最新价格和优惠。'
+                    },
+                    {
+                        keywords: ['保修', '质保', '售后'],
+                        response: '我们提供30天质保服务。如果您的数据线出现质量问题，可以通过售后申请页面提交维修、换新或退货退款申请。\n\n售后流程：\n1. 填写售后申请表单\n2. 上传相关证据（订单截图、开箱视频、数据线图片等）\n3. 等待审核\n4. 审核通过后，我们将安排物流上门取件\n\n商品将进行返厂检测，如果确实为商品本身问题，我们将按照您选择的售后方式处理。'
+                    },
+                    {
+                        keywords: ['使用', '怎么用', '如何使用', '操作'],
+                        response: '小天才6点数据线的使用方法：\n1. 将手表后面的SIM卡后盖拔开\n2. 把6点线的6根针对准上面的触点（线朝左边）\n3. 用力插上即可（不可能存在插不上的情况）\n\n进入9008模式方法：\n在烧录连接手表页面时，同时长按数据线背部按键和手表电源键进入9008模式（期间不要松手，直到电脑上显示连接成功）。'
+                    },
+                    {
+                        keywords: ['兼容', '支持', '适用'],
+                        response: '小天才6点数据线适用于小天才系列手表，包括但不限于Z9、Z10、Z11等型号。\n\n如果您不确定是否兼容您的手表型号，请联系客服咨询。'
+                    },
+                    {
+                        keywords: ['电脑', '连接', '端口', '驱动'],
+                        response: '手表连接电脑的步骤：\n1. 确保您已按照视频教程下载并打开完每一份文件/应用\n2. 在短接页面下同时长按数据线背部按键和手表电源键进入9008模式\n3. 等待电脑识别设备\n\n如果电脑不显示端口，请检查驱动是否安装正确，或者尝试更换USB端口。'
+                    }
+                ];
+                
+                // 匹配关键词
+                for (const rule of ruleBasedResponses) {
+                    if (rule.keywords.some(keyword => lowerPrompt.includes(keyword))) {
+                        return rule.response;
+                    }
+                }
+                
+                // 默认回复
+                return `感谢您的咨询。关于"${prompt}"的问题，我建议您：\n\n1. 查看我们的产品教程和常见问题解答\n2. 联系客服获取专业支持\n3. 提供更多详细信息，以便我能更好地帮助您\n\n您也可以尝试搜索相关关键词，获取更多信息。`;
+            }
+
+            function displayResults(results) {
+                const resultsSection = document.getElementById('resultsSection');
+                const resultsContainer = document.getElementById('resultsContainer');
+                
+                if (resultsSection && resultsContainer) {
+                    resultsSection.classList.remove('hidden');
+                    resultsContainer.innerHTML = '';
+                    
+                    if (results.length === 0) {
+                        const keyword = document.getElementById('searchInput').value.trim();
+                        resultsContainer.innerHTML = `
+                            <div class="bg-white rounded-xl p-8 text-left">
+                                <i class="fa-solid fa-robot text-4xl text-gray-400 mb-4"></i>
+                                <p class="text-gray-600 text-lg mb-4">未找到相关结果，正在使用AI生成回复...</p>
+                                <div id="ai-loading" class="flex items-center justify-center">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                </div>
+                                <div id="ai-response" class="mt-4 hidden"></div>
+                            </div>
+                        `;
+                        
+                        // 调用AI生成回复
+                        getAIResponse(keyword).then(response => {
+                            const aiResponseDiv = document.getElementById('ai-response');
+                            const aiLoadingDiv = document.getElementById('ai-loading');
+                            if (aiResponseDiv && aiLoadingDiv) {
+                                aiLoadingDiv.classList.add('hidden');
+                                aiResponseDiv.classList.remove('hidden');
+                                aiResponseDiv.innerHTML = `
+                                    <div class="bg-blue-50 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-blue-700 mb-2">智能回复</h4>
+                                        <p class="text-gray-700 whitespace-pre-line">${response}</p>
+                                    </div>
+                                `;
+                            }
+                        });
+                        return;
+                    }
+                    
+                    results.forEach((item, index) => {
+                        const resultItem = document.createElement('div');
+                        const highlightClass = index === 0 ? 'border-2 border-blue-500 bg-blue-50' : 'border border-gray-200';
+                        resultItem.className = `bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer ${highlightClass} text-left`;
+                        
+                        resultItem.innerHTML = `
+                            <h3 class="text-xl font-semibold mb-2">${item.Q || ''}</h3>
+                            <p class="text-gray-600 line-clamp-4">${item.A || ''}</p>
+                            ${item.image ? '<div class="mt-3"><i class="fa-solid fa-image text-gray-400 mr-2"></i>包含关联图片</div>' : ''}
+                            <div class="mt-4 text-blue-600 hover:text-blue-800 transition-colors">
+                                <span>查看详情 <i class="fa-solid fa-chevron-right text-xs"></i></span>
+                            </div>
+                        `;
+                        
+                        resultItem.addEventListener('click', () => {
+                            const detailModal = document.createElement('div');
+                            detailModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+                            detailModal.innerHTML = `
+                                <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-auto p-8 m-4">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <h3 class="text-2xl font-semibold">${item.Q || ''}</h3>
+                                        <button class="close-modal text-gray-400 hover:text-gray-600 transition-colors">
+                                            <i class="fa-solid fa-xmark text-xl"></i>
+                                        </button>
+                                    </div>
+                                    <hr class="mb-6 border-gray-200">
+                                    <div class="text-lg leading-relaxed whitespace-pre-line">${item.A || ''}</div>
+                                </div>
+                            `;
+                            document.body.appendChild(detailModal);
+                            document.body.style.overflow = 'hidden';
+                            
+                            detailModal.querySelector('.close-modal').addEventListener('click', () => {
+                                document.body.removeChild(detailModal);
+                                document.body.style.overflow = '';
+                            });
+                        });
+                        
+                        resultsContainer.appendChild(resultItem);
+                    });
+                }
+            }
+
+            // 搜索历史功能
+            function getSearchHistory() {
+                try {
+                    return JSON.parse(localStorage.getItem('kdxzhx_search_history')) || [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function saveSearchHistory(keyword) {
+                if (!keyword) return;
+                let history = getSearchHistory();
+                history = history.filter(item => item !== keyword);
+                history.unshift(keyword);
+                history = history.slice(0, 5);
+                localStorage.setItem('kdxzhx_search_history', JSON.stringify(history));
+                displaySearchHistory();
+            }
+
+            function displaySearchHistory() {
+                const history = getSearchHistory();
+                const historyContainer = document.getElementById('historyContainer');
+                const searchHistorySection = document.getElementById('searchHistory');
+                
+                if (historyContainer && searchHistorySection) {
+                    if (history.length > 0) {
+                        searchHistorySection.classList.remove('hidden');
+                        historyContainer.innerHTML = '';
+                        history.forEach(item => {
+                            const historyItem = document.createElement('button');
+                            historyItem.className = 'px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors';
+                            historyItem.textContent = item;
+                            historyItem.addEventListener('click', () => {
+                                document.getElementById('searchInput').value = item;
+                                performSearch();
+                            });
+                            historyContainer.appendChild(historyItem);
+                        });
+                    } else {
+                        searchHistorySection.classList.add('hidden');
+                    }
+                }
+            }
+
+            function clearSearchHistory() {
+                localStorage.removeItem('kdxzhx_search_history');
+                displaySearchHistory();
+            }
+
+            // 绑定热门搜索点击事件
+            const hotSearches = document.getElementById('hotSearches');
+            if (hotSearches) {
+                hotSearches.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        document.getElementById('searchInput').value = e.target.textContent;
+                        performSearch();
+                    }
+                });
+            }
+
+            // 绑定清除历史记录事件
+            const clearHistoryBtn = document.getElementById('clearHistory');
+            if (clearHistoryBtn) {
+                clearHistoryBtn.addEventListener('click', clearSearchHistory);
+            }
+
+            // 绑定搜索事件
+            const searchBtn = document.getElementById('searchBtn');
+            const searchInput = document.getElementById('searchInput');
+            if (searchBtn) searchBtn.addEventListener('click', performSearch);
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') performSearch();
+                });
+            }
+
+            // 修改performSearch函数，添加搜索历史保存
+            const originalPerformSearch = performSearch;
+            performSearch = function() {
+                const keyword = document.getElementById('searchInput').value.trim();
+                if (keyword) {
+                    saveSearchHistory(keyword);
+                }
+                originalPerformSearch();
+            };
+
+            // 更多商品页面处理
+            const moreProductsBtn = document.getElementById('more-products-btn');
+            const backFromProductsBtn = document.getElementById('back-from-products-btn');
+            const moreProductsPage = document.getElementById('more-products');
+            
+            if (moreProductsBtn) {
+                moreProductsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    homePage.classList.add('hidden');
+                    consultSection.classList.add('hidden');
+                    aftersalesPage.classList.add('hidden');
+                    previewPage.classList.add('hidden');
+                    moreProductsPage.classList.remove('hidden');
+                    moreProductsPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
+            
+            if (backFromProductsBtn) {
+                backFromProductsBtn.addEventListener('click', () => {
+                    moreProductsPage.classList.add('hidden');
+                    homePage.classList.remove('hidden');
+                    consultSection.classList.remove('hidden');
+                    homePage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
+
+            // 初始化
+            importPresetData();
+            displaySearchHistory();
+        });
+    </script>
+</body>
+</html>
