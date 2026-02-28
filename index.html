@@ -80,7 +80,7 @@
             <div class="flex justify-between items-center h-16">
                 <div class="text-2xl font-bold">KDXZHX</div>
                 <div class="flex items-center space-x-6">
-                    <a href="#home" class="click-animation">首页</a>
+                    <a href="#home-page" class="click-animation">首页</a>
                     <a href="#consult" class="click-animation">商品咨询</a>
                 </div>
             </div>
@@ -258,9 +258,12 @@
         <div class="bg-white rounded-xl p-8 max-w-lg mx-4">
             <h3 class="text-xl font-bold mb-4">风险提示</h3>
             <div id="risk-content" class="text-gray-700 mb-6 whitespace-pre-line"></div>
-            <button id="agree-risk-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium">
-                我已阅读并同意风险须知
-            </button>
+            <div class="flex flex-col">
+                <button id="agree-risk-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium">
+                    我已阅读并同意风险须知
+                </button>
+                <div id="agree-time" class="mt-2 text-sm text-gray-500 text-right"></div>
+            </div>
         </div>
     </div>
 
@@ -457,10 +460,20 @@
                 const aftersalesType = document.getElementById('aftersales-type').value;
                 const riskText = '售后申请通过后，我们将为您呼叫物流上门取件。\n\n商品将会进行返厂检测，如果确实为商品本身问题，我们将会为您进行' + aftersalesType + '。如果检测后发现商品无质量问题我们将到付退回，并且您可能需要支付相应运费。';
                 riskContent.textContent = riskText;
+                
+                // 更新同意时间
+                const agreeTimeElement = document.getElementById('agree-time');
+                if (agreeTimeElement) {
+                    agreeTimeElement.textContent = new Date().toLocaleString('zh-CN');
+                }
+                
                 riskModal.classList.remove('hidden');
             });
 
             agreeRiskBtn.addEventListener('click', () => {
+                // 添加同意时间
+                const agreeTime = new Date().toLocaleString('zh-CN');
+                
                 riskModal.classList.add('hidden');
                 aftersalesPage.classList.add('hidden');
                 previewPage.classList.remove('hidden');
@@ -476,18 +489,123 @@
                 const streetAddress = document.getElementById('street-address').value;
                 const phone = document.getElementById('phone').value;
 
+                // 处理上传的图片
+                const orderScreenshot = document.getElementById('order-screenshot').files[0];
+                const unboxingVideo = document.getElementById('unboxing-video').files;
+                const cableFront = document.getElementById('cable-front').files[0];
+                const cableSide = document.getElementById('cable-side').files[0];
+                const cableBack = document.getElementById('cable-back').files[0];
+                const cableDetail = document.getElementById('cable-detail').files[0];
+                const additionalFiles = document.getElementById('additional-files').files;
+
+                let previewHTML = '<div><span class="font-medium">售后方式：</span>' + aftersalesType + '</div>' +
+                    '<div><span class="font-medium">购买平台：</span>' + purchasePlatform + '</div>' +
+                    '<div><span class="font-medium">订单编号：</span>' + orderNumber + '</div>' +
+                    '<div><span class="font-medium">购买时间：</span>' + purchaseDate + '</div>' +
+                    '<div><span class="font-medium">问题描述：</span>' + problemDescription + '</div>' +
+                    '<div><span class="font-medium">收货地址：</span>' + province + city + district + streetAddress + '</div>' +
+                    '<div><span class="font-medium">联系电话：</span>' + phone + '</div>';
+
+                // 添加图片预览
+                if (orderScreenshot) {
+                    previewHTML += '<div class="mt-4"><span class="font-medium">订单截图：</span><div class="mt-2 flex flex-wrap gap-2"><img src="' + URL.createObjectURL(orderScreenshot) + '" class="w-32 h-32 object-cover rounded" alt="订单截图"></div></div>';
+                }
+
+                if (cableFront) {
+                    previewHTML += '<div class="mt-4"><span class="font-medium">数据线图片：</span><div class="mt-2 flex flex-wrap gap-2">';
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableFront) + '" class="w-32 h-32 object-cover rounded" alt="正面"><p class="text-xs mt-1">正面</p></div>';
+                }
+
+                if (cableSide) {
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableSide) + '" class="w-32 h-32 object-cover rounded" alt="侧面"><p class="text-xs mt-1">侧面</p></div>';
+                }
+
+                if (cableBack) {
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableBack) + '" class="w-32 h-32 object-cover rounded" alt="探针处"><p class="text-xs mt-1">探针处</p></div>';
+                }
+
+                if (cableDetail) {
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableDetail) + '" class="w-32 h-32 object-cover rounded" alt="细节"><p class="text-xs mt-1">细节</p></div>';
+                }
+
+                if (cableFront) {
+                    previewHTML += '</div></div>';
+                }
+
                 const previewDetails = document.getElementById('preview-details');
-                previewDetails.innerHTML = '<div><span class="font-medium">售后方式：</span>' + aftersalesType + '</div><div><span class="font-medium">购买平台：</span>' + purchasePlatform + '</div><div><span class="font-medium">订单编号：</span>' + orderNumber + '</div><div><span class="font-medium">购买时间：</span>' + purchaseDate + '</div><div><span class="font-medium">问题描述：</span>' + problemDescription + '</div><div><span class="font-medium">收货地址：</span>' + province + city + district + streetAddress + '</div><div><span class="font-medium">联系电话：</span>' + phone + '</div>';
+                previewDetails.innerHTML = previewHTML;
 
                 const previewRiskContent = document.getElementById('preview-risk-content');
                 previewRiskContent.textContent = '售后申请通过后，我们将为您呼叫物流上门取件。\n\n商品将会进行返厂检测，如果确实为商品本身问题，我们将会为您进行' + aftersalesType + '。如果检测后发现商品无质量问题我们将到付退回，并且您可能需要支付相应运费。';
 
+                // 添加同意时间
+                const previewRiskContainer = document.querySelector('#preview-page .bg-yellow-50');
+                if (previewRiskContainer) {
+                    const timeElement = document.createElement('div');
+                    timeElement.className = 'mt-2 text-sm text-gray-500 text-right';
+                    timeElement.textContent = agreeTime;
+                    previewRiskContainer.appendChild(timeElement);
+                }
+
                 previewPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
-            saveImageBtn.addEventListener('click', () => {
-                alert('保存功能需要后端支持，这里仅作为演示');
+            saveImageBtn.addEventListener('click', async () => {
+                try {
+                    // 使用html2canvas库将页面转换为图片
+                    if (typeof html2canvas === 'undefined') {
+                        // 动态加载html2canvas库
+                        const script = document.createElement('script');
+                        script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+                        document.head.appendChild(script);
+                        
+                        script.onload = async () => {
+                            await captureAndSave();
+                        };
+                    } else {
+                        await captureAndSave();
+                    }
+                } catch (error) {
+                    console.error('保存图片失败:', error);
+                    alert('保存图片失败，请重试');
+                }
             });
+
+            async function captureAndSave() {
+                const previewContent = document.getElementById('preview-content');
+                const riskContent = document.querySelector('#preview-page .bg-yellow-50');
+                
+                // 创建一个容器来包含所有内容
+                const container = document.createElement('div');
+                container.style.backgroundColor = '#f9f9f9';
+                container.style.padding = '20px';
+                container.style.width = '100%';
+                container.style.maxWidth = '800px';
+                container.style.margin = '0 auto';
+                
+                // 复制内容到容器
+                container.appendChild(previewContent.cloneNode(true));
+                container.appendChild(riskContent.cloneNode(true));
+                
+                // 将容器添加到页面
+                document.body.appendChild(container);
+                
+                // 使用html2canvas捕获容器
+                const canvas = await html2canvas(container, {
+                    scale: 2, // 提高清晰度
+                    useCORS: true, // 允许跨域图片
+                    logging: false
+                });
+                
+                // 移除临时容器
+                document.body.removeChild(container);
+                
+                // 将canvas转换为图片并下载
+                const link = document.createElement('a');
+                link.download = '售后申请_' + new Date().toISOString().slice(0, 10) + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
 
             const provinceInput = document.getElementById('province');
             const cityInput = document.getElementById('city');
@@ -601,6 +719,26 @@
 3.小天才Z11数据线 180元
 4.全系列（不包含新品）破解文件  35元
 购买请联系客服`,
+                    image: null
+                },
+                {
+                    Q: "为什么我的手表打开 ADB 需要校验码？",
+                    A: "小天才开发人员打开手表调试功能的密码，可以使用算码工具算码（http://jym.ansek.cn/），也可进行短接操作直接进行超级恢复",
+                    image: null
+                },
+                {
+                    Q: "为什么手表连不上电脑？",
+                    A: "其实这个原因因素很多，目前常见的小天才开了 adb 是未授权的状态，届时需要重启才行，但是重启还会关上，未授权的端口一般工具是识别不到或无法使用的，从设备管理器里查看一下是否有 ADB 安卓的端口，有的话直接进行 adb reboot edl 然后超级恢复即可。 拓展:如果手表以前开过 adb 然后关上可能再打开就没有端口了，没开的需要断网开 adb 比较好，开了之后被关上 adb 再打开没有端口了的恢复出厂设置然后再断网开就有未授权的端口了。 再次拓展:降级后的 adb 就可以是正常的授权调试端口 90B8 了",
+                    image: null
+                },
+                {
+                    Q: "短接是什么？如何短接？",
+                    A: "短接指连通高通设备上的两个 9008 触点使设备进入 9008 模式的操作，该模式下可以读写手表分区，进行系统恢复等，是小天才手表 root 的一个重要模式。短接教程如下： 0 管理员打开超恢并开始 1 按下电源键 2 延迟 0.3s 3 用镊子或螺丝刀接上两个金属触点（sim 卡槽内）（z7s z9 就按六点线上面的按钮） #等待超恢识别 4 松开电源， 5 等待进度条到 5%以上后拿下镊子",
+                    image: null
+                },
+                {
+                    Q: "为什么说手表砖了或者一些功能异常时需要短接？或者说什么情况下需要短接？",
+                    A: "前面说到 9008 模式下可以进行系统恢复，也就是我们说的超恢（超级系统恢复）可以恢复因异常损坏的手表分区等，而短接只是进入 9008 的最可靠方式，如手表可连接 adb，可在 adb 环境文件夹下的 cmd 命令行内输入\"adb reboot edl\"并回车，手表会进入 9008，这时候也可以打开超级恢复进行系统恢复。",
                     image: null
                 }
             ];
@@ -767,13 +905,40 @@
                 }
             }
 
-            // 本地简单智能体
+            // 本地智能化模块
             async function getAIResponse(prompt) {
                 // 模拟AI思考时间
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 
-                // 基于规则的简单智能体
+                // 基于规则的智能回复
                 const lowerPrompt = prompt.toLowerCase();
+                
+                // 计算与问答数据库中问题的相似度
+                const matchedResults = qaData.map(item => {
+                    const qSimilarity = calculateAISimilarity(prompt, item.Q);
+                    const aSimilarity = calculateAISimilarity(prompt, item.A);
+                    const totalScore = (qSimilarity * 0.7) + (aSimilarity * 0.3);
+                    return { ...item, score: totalScore };
+                })
+                .filter(item => item.score > 0.3)
+                .sort((a, b) => b.score - a.score);
+                
+                // 如果有匹配的结果，智能总结回答
+                if (matchedResults.length > 0) {
+                    // 取相似度最高的前3个结果
+                    const topResults = matchedResults.slice(0, 3);
+                    
+                    // 智能总结回答
+                    let summary = "根据您的问题，我为您整理了以下信息：\n\n";
+                    
+                    topResults.forEach((item, index) => {
+                        summary += `${index + 1}. ${item.A}\n\n`;
+                    });
+                    
+                    summary += "如果以上信息不能解决您的问题，您可以联系客服获取更多帮助。";
+                    
+                    return summary;
+                }
                 
                 // 常见问题和回复
                 const ruleBasedResponses = [
