@@ -133,7 +133,20 @@
             </button>
         </div>
 
-        <div class="mt-16 text-center animate-hidden animate-fade-in-up-delay-3 flex justify-center items-center space-x-4">
+        <div id="guide-hint" class="mt-8 text-center animate-hidden animate-fade-in-up-delay-3">
+            <div style="display: inline-flex; align-items: center; gap: 8px; background-color: #eff6ff; color: #1d4ed8; padding: 12px 20px; border-radius: 20px; font-size: 14px;">
+                <span>商品不会用？请下滑查看</span>
+                <i class="fa-solid fa-chevron-down" style="animation: bounce 1s infinite;"></i>
+            </div>
+            <style>
+                @keyframes bounce {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(5px); }
+                }
+            </style>
+        </div>
+
+        <div class="mt-8 text-center animate-hidden animate-fade-in-up-delay-3 flex justify-center items-center space-x-4">
             <a href="#" id="warranty-btn" class="text-blue-600 hover:text-blue-800 transition-colors font-medium">
                 30天质保
             </a>
