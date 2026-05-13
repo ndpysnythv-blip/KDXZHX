@@ -133,10 +133,12 @@
             </button>
         </div>
 
-        <div id="guide-hint" class="mt-8 text-center animate-hidden animate-fade-in-up-delay-3">
-            <div style="display: inline-flex; align-items: center; gap: 8px; background-color: #eff6ff; color: #1d4ed8; padding: 12px 20px; border-radius: 20px; font-size: 14px;">
-                <span>商品不会用？请下滑查看</span>
-                <i class="fa-solid fa-chevron-down" style="animation: bounce 1s infinite;"></i>
+        <div id="guide-hint" class="mt-4 text-center animate-hidden animate-fade-in-up-delay-3 cursor-pointer" onclick="document.querySelector('a[href=&quot;#consult&quot;]').click();">
+            <div style="background-color: #eff6ff; color: #1d4ed8; padding: 12px 20px; border-radius: 20px; font-size: 14px; display: inline-block;">
+                商品相关的内容不会使用，下滑查看
+            </div>
+            <div style="margin-top: 8px;">
+                <i class="fa-solid fa-chevron-down" style="animation: bounce 1s infinite; color: #1d4ed8;"></i>
             </div>
             <style>
                 @keyframes bounce {
