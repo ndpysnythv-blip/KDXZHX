@@ -439,94 +439,12 @@
             
             let currentLink = '';
 
-            // 动态创建弹窗HTML
-            const createModals = () =&gt; {
-                const tutorialModalHtml = `
-                    <div id="tutorial-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; z-index: 9999; overflow: hidden;">
-                        <div style="background-color: white; border-radius: 12px; padding: 32px; max-width: 400px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); text-align: center;">
-                            <div style="width: 64px; height: 64px; background-color: #dbeafe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                                <i class="fa-solid fa-lightbulb" style="font-size: 32px; color: #1d4ed8;"></i>
-                            </div>
-                            <p style="color: #374151; margin-bottom: 12px; line-height: 1.8; text-align: left;">
-                                请一步步按照相关教程操作，到了手表连接页面，请将手表进入<span id="open-9008-link" style="color: #1d4ed8; cursor: pointer; text-decoration: underline;">9008模式</span>，否则永远都无法连接上。
-                            </p>
-                            <button id="tutorial-confirm-btn" style="width: 100%; padding: 12px 24px; background-color: #111111; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer;">
-                                我知道了
-                            </button>
-                        </div>
-                    </div>
-                    <div id="mode9008-modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; z-index: 10000; overflow: hidden;">
-                        <div style="background-color: white; border-radius: 12px; padding: 32px; max-width: 400px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.2); text-align: center;">
-                            <div style="width: 64px; height: 64px; background-color: #dbeafe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                                <i class="fa-solid fa-info-circle" style="font-size: 32px; color: #1d4ed8;"></i>
-                            </div>
-                            <p style="color: #374151; margin-bottom: 12px; line-height: 1.8; text-align: left;">
-                                按照视频教程进入烧录连接手表页面时，请同时长按 数据线背部按键 和 手表电源键 进入9008模式(期间不要松手，直到电脑上显示连接成功)。如果试了几次还不行，可能是网络差，建议换个地点或者网络环境再试。
-                            </p>
-                            <button id="mode9008-confirm-btn" style="width: 100%; padding: 12px 24px; background-color: #111111; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer;">
-                                我知道了
-                            </button>
-                        </div>
-                    </div>
-                `;
-                const welcomeModal = document.getElementById('welcome-modal');
-                welcomeModal.insertAdjacentHTML('afterend', tutorialModalHtml);
-                
-                // 添加事件监听
-                const tutorialModal = document.getElementById('tutorial-modal');
-                const mode9008Modal = document.getElementById('mode9008-modal');
-                const open9008Link = document.getElementById('open-9008-link');
-                const tutorialConfirmBtn = document.getElementById('tutorial-confirm-btn');
-                const mode9008ConfirmBtn = document.getElementById('mode9008-confirm-btn');
-                
-                open9008Link.addEventListener('click', (e) =&gt; {
-                    e.stopPropagation();
-                    mode9008Modal.style.display = 'flex';
-                });
-                
-                tutorialConfirmBtn.addEventListener('click', () =&gt; {
-                    tutorialModal.style.display = 'none';
-                    if (currentLink) {
-                        window.open(currentLink, '_blank');
-                    }
-                });
-                
-                mode9008ConfirmBtn.addEventListener('click', () =&gt; {
-                    mode9008Modal.style.display = 'none';
-                });
-                
-                tutorialModal.addEventListener('click', (e) =&gt; {
-                    if (e.target === tutorialModal) {
-                        tutorialModal.style.display = 'none';
-                        if (currentLink) {
-                            window.open(currentLink, '_blank');
-                        }
-                    }
-                });
-                
-                mode9008Modal.addEventListener('click', (e) =&gt; {
-                    if (e.target === mode9008Modal) {
-                        mode9008Modal.style.display = 'none';
-                    }
-                });
-            };
-            
-            createModals();
-
-            buttons.forEach(button =&gt; {
-                button.addEventListener('click', function(e) {
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
                     currentLink = this.getAttribute('data-link');
                     const buttonName = this.textContent.trim();
                     
-                    // 判断是否是文件教程按钮
-                    if (buttonName.includes('文件教程')) {
-                        e.preventDefault();
-                        const tutorialModal = document.getElementById('tutorial-modal');
-                        tutorialModal.style.display = 'flex';
-                    } else {
-                        window.open(currentLink, '_blank');
-                    }
-                    
+                    window.open(currentLink, '_blank');
                     linkDisplayArea.classList.remove('hidden');
                     linkDisplayArea.classList.add('breathing-border');
                     document.querySelector('#link-display-area .font-medium').textContent = buttonName + ' 链接地址：';
