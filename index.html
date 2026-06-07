@@ -116,7 +116,7 @@
                     </button>
                     
                     <button 
-                        data-link="https://weixin.qq.com/r/mp/yycRCfjEVaUqrbxq93LZ"
+                        id="tech-advisor-btn"
                         class="block w-full big-button text-center click-animation"
                     >
                         <i class="fa-solid fa-headset mr-3"></i>技术顾问
@@ -302,6 +302,19 @@
                 </button>
                 <div id="agree-time" class="mt-2 text-sm text-gray-500 text-right"></div>
             </div>
+        </div>
+    </div>
+
+    <div id="qr-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 text-center">
+            <h3 class="text-xl font-bold mb-4">技术顾问</h3>
+            <p class="text-gray-600 mb-4">扫码添加技术顾问</p>
+            <div class="mb-6">
+                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=微信二维码&image_size=square_hd" alt="技术顾问二维码" class="mx-auto max-w-xs w-full">
+            </div>
+            <button id="close-qr-btn" class="w-full py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation font-medium">
+                关闭
+            </button>
         </div>
     </div>
 
@@ -493,6 +506,9 @@
             const agreeRiskBtn = document.getElementById('agree-risk-btn');
             const saveImageBtn = document.getElementById('save-image-btn');
             const backBtn = document.getElementById('back-btn');
+            const techAdvisorBtn = document.getElementById('tech-advisor-btn');
+            const qrModal = document.getElementById('qr-modal');
+            const closeQrBtn = document.getElementById('close-qr-btn');
 
             warrantyBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -509,6 +525,20 @@
                 homePage.classList.remove('hidden');
                 consultSection.classList.remove('hidden');
                 homePage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            techAdvisorBtn.addEventListener('click', () => {
+                qrModal.classList.remove('hidden');
+            });
+
+            closeQrBtn.addEventListener('click', () => {
+                qrModal.classList.add('hidden');
+            });
+
+            qrModal.addEventListener('click', (e) => {
+                if (e.target === qrModal) {
+                    qrModal.classList.add('hidden');
+                }
             });
 
             // 初始化显示首页和商品咨询页面
