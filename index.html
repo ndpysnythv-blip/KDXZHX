@@ -282,12 +282,83 @@
             <p style="font-size: 9px; color: #9ca3af; margin-bottom: 24px; line-height: 1.2; white-space: nowrap;">
                 *非强制性操作，您也可以花¥40单独购买文件教程或上网寻找相关教程
             </p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button 
+                    id="welcome-tutorial-btn" 
+                    style="width: 100%; padding: 12px 24px; background-color: #f3f4f6; color: #111111; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;"
+                >
+                    <i class="fa-solid fa-book-open" style="margin-right: 8px;"></i>商品简单教程
+                </button>
+                <button 
+                    id="welcome-code-btn" 
+                    style="width: 100%; padding: 12px 24px; background-color: #111111; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: not-allowed; opacity: 0.5; transition: all 0.3s ease;"
+                    disabled
+                >
+                    <i class="fa-solid fa-key" style="margin-right: 8px;"></i><span id="welcome-timer">请阅读10秒后点击</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 w-full">
+            <h3 class="text-xl font-bold mb-4 text-center">输入提取码</h3>
+            <p class="text-gray-600 mb-6 text-center text-sm">请输入好评后获取的提取码</p>
+            <div class="mb-6">
+                <input 
+                    type="text" 
+                    id="extract-code-input" 
+                    placeholder="请输入提取码"
+                    class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-center text-lg tracking-widest"
+                    maxlength="16"
+                >
+            </div>
+            <div id="code-error" class="hidden text-red-500 text-sm text-center mb-4">
+                提取码错误，请重试
+            </div>
+            <div class="flex flex-col gap-3">
+                <button 
+                    id="confirm-code-btn" 
+                    class="w-full py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium"
+                >
+                    确认提取
+                </button>
+                <button 
+                    id="close-code-modal-btn" 
+                    class="w-full py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation font-medium"
+                >
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-lg mx-4 w-full max-h-[80vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-6 text-center">商品简单教程</h3>
+            <div class="space-y-4 text-gray-700">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-1 mr-2"></i>连接数据线</h4>
+                    <p class="text-sm leading-relaxed">将手表后面的SIM卡后盖拔开，把6点线的6根针对准上面的触点（线朝左边）用力插上即可。</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-2 mr-2"></i>进入9008模式</h4>
+                    <p class="text-sm leading-relaxed">按照视频教程进入烧录连接手表页面时，请同时长按数据线背部按键和手表电源键进入9008模式（期间不要松手，直到电脑上显示连接成功）。</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-3 mr-2"></i>系统要求</h4>
+                    <p class="text-sm leading-relaxed">电脑为Windows 10以上系统即可，Mac可能需安装虚拟机。</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-lightbulb mr-2"></i>温馨提示</h4>
+                    <p class="text-sm leading-relaxed">更多详细操作请查看文件教程，或联系技术顾问获取帮助。</p>
+                </div>
+            </div>
             <button 
-                id="welcome-confirm-btn" 
-                style="width: 100%; padding: 12px 24px; background-color: #111111; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: not-allowed; opacity: 0.5;"
-                disabled
+                id="close-tutorial-btn" 
+                class="w-full mt-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium"
             >
-                <span id="welcome-timer">请阅读10秒后点击</span>
+                我知道了
             </button>
         </div>
     </div>
@@ -422,8 +493,19 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const welcomeModal = document.getElementById('welcome-modal');
-            const welcomeConfirmBtn = document.getElementById('welcome-confirm-btn');
+            const welcomeCodeBtn = document.getElementById('welcome-code-btn');
+            const welcomeTutorialBtn = document.getElementById('welcome-tutorial-btn');
             const welcomeTimer = document.getElementById('welcome-timer');
+            const codeModal = document.getElementById('code-modal');
+            const tutorialModal = document.getElementById('tutorial-modal');
+            const closeCodeModalBtn = document.getElementById('close-code-modal-btn');
+            const confirmCodeBtn = document.getElementById('confirm-code-btn');
+            const extractCodeInput = document.getElementById('extract-code-input');
+            const codeError = document.getElementById('code-error');
+            const closeTutorialBtn = document.getElementById('close-tutorial-btn');
+            
+            // 预设提取码（实际使用时可从服务器获取）
+            const validExtractCodes = ['KDXZHX2024', '666666', '888888'];
             
             let countdown = 10;
             const countdownInterval = setInterval(() => {
@@ -432,15 +514,90 @@
                     welcomeTimer.textContent = `请阅读${countdown}秒后点击`;
                 } else {
                     clearInterval(countdownInterval);
-                    welcomeTimer.textContent = '我知道了';
-                    welcomeConfirmBtn.style.opacity = '1';
-                    welcomeConfirmBtn.style.cursor = 'pointer';
-                    welcomeConfirmBtn.disabled = false;
+                    welcomeTimer.textContent = '已好评，输入提取码';
+                    welcomeCodeBtn.style.opacity = '1';
+                    welcomeCodeBtn.style.cursor = 'pointer';
+                    welcomeCodeBtn.disabled = false;
                 }
             }, 1000);
             
-            welcomeConfirmBtn.addEventListener('click', () => {
-                welcomeModal.style.display = 'none';
+            // 商品简单教程按钮
+            welcomeTutorialBtn.addEventListener('click', () => {
+                tutorialModal.classList.remove('hidden');
+            });
+            
+            // 关闭教程弹窗
+            closeTutorialBtn.addEventListener('click', () => {
+                tutorialModal.classList.add('hidden');
+            });
+            
+            tutorialModal.addEventListener('click', (e) => {
+                if (e.target === tutorialModal) {
+                    tutorialModal.classList.add('hidden');
+                }
+            });
+            
+            // 已好评，输入提取码按钮
+            welcomeCodeBtn.addEventListener('click', () => {
+                codeModal.classList.remove('hidden');
+                extractCodeInput.focus();
+            });
+            
+            // 关闭提取码弹窗
+            closeCodeModalBtn.addEventListener('click', () => {
+                codeModal.classList.add('hidden');
+                codeError.classList.add('hidden');
+                extractCodeInput.value = '';
+            });
+            
+            codeModal.addEventListener('click', (e) => {
+                if (e.target === codeModal) {
+                    codeModal.classList.add('hidden');
+                    codeError.classList.add('hidden');
+                    extractCodeInput.value = '';
+                }
+            });
+            
+            // 确认提取码
+            confirmCodeBtn.addEventListener('click', () => {
+                const code = extractCodeInput.value.trim();
+                if (!code) {
+                    codeError.textContent = '请输入提取码';
+                    codeError.classList.remove('hidden');
+                    return;
+                }
+                
+                if (validExtractCodes.includes(code)) {
+                    // 提取码正确，显示文件教程链接
+                    codeModal.classList.add('hidden');
+                    welcomeModal.style.display = 'none';
+                    codeError.classList.add('hidden');
+                    
+                    // 显示文件教程链接区域
+                    const linkDisplayArea = document.getElementById('link-display-area');
+                    const linkText = document.getElementById('link-text');
+                    const tutorialLink = 'https://pan.quark.cn/s/9885035986db';
+                    
+                    window.open(tutorialLink, '_blank');
+                    linkDisplayArea.classList.remove('hidden');
+                    linkDisplayArea.classList.add('breathing-border');
+                    document.querySelector('#link-display-area .font-medium').textContent = '文件教程 链接地址：';
+                    linkText.textContent = tutorialLink;
+                    linkDisplayArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    
+                    // 保存提取状态
+                    localStorage.setItem('kdxzhx_extracted', 'true');
+                } else {
+                    codeError.textContent = '提取码错误，请重试';
+                    codeError.classList.remove('hidden');
+                }
+            });
+            
+            // 回车确认提取码
+            extractCodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    confirmCodeBtn.click();
+                }
             });
 
             const animateElements = document.querySelectorAll('.animate-hidden');
