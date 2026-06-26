@@ -71,6 +71,15 @@
                 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
             }
         }
+        
+        /* 隐藏滚动条但保留滚动功能 */
+        .tutorial-scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .tutorial-scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
     </style>
 </head>
 
@@ -300,7 +309,7 @@
         </div>
     </div>
 
-    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] hidden">
         <div class="bg-white rounded-xl p-8 max-w-md mx-4 w-full">
             <h3 class="text-xl font-bold mb-4 text-center">输入提取码</h3>
             <p class="text-gray-600 mb-6 text-center text-sm">请输入好评后获取的提取码</p>
@@ -333,8 +342,8 @@
         </div>
     </div>
 
-    <div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-xl p-8 max-w-lg mx-4 w-full max-h-[80vh] overflow-y-auto">
+    <div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] hidden">
+        <div class="bg-white rounded-xl p-8 max-w-lg mx-4 w-full max-h-[80vh] overflow-y-auto tutorial-scrollbar-hide">
             <h3 class="text-xl font-bold mb-6 text-center">商品简单教程</h3>
             <div class="space-y-4 text-gray-700">
                 <div class="bg-gray-50 p-4 rounded-lg">
@@ -524,16 +533,19 @@
             // 商品简单教程按钮
             welcomeTutorialBtn.addEventListener('click', () => {
                 tutorialModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
             });
             
             // 关闭教程弹窗
             closeTutorialBtn.addEventListener('click', () => {
                 tutorialModal.classList.add('hidden');
+                document.body.style.overflow = '';
             });
             
             tutorialModal.addEventListener('click', (e) => {
                 if (e.target === tutorialModal) {
                     tutorialModal.classList.add('hidden');
+                    document.body.style.overflow = '';
                 }
             });
             
@@ -541,6 +553,7 @@
             welcomeCodeBtn.addEventListener('click', () => {
                 codeModal.classList.remove('hidden');
                 extractCodeInput.focus();
+                document.body.style.overflow = 'hidden';
             });
             
             // 关闭提取码弹窗
@@ -548,6 +561,7 @@
                 codeModal.classList.add('hidden');
                 codeError.classList.add('hidden');
                 extractCodeInput.value = '';
+                document.body.style.overflow = '';
             });
             
             codeModal.addEventListener('click', (e) => {
@@ -555,6 +569,7 @@
                     codeModal.classList.add('hidden');
                     codeError.classList.add('hidden');
                     extractCodeInput.value = '';
+                    document.body.style.overflow = '';
                 }
             });
             
@@ -572,6 +587,7 @@
                     codeModal.classList.add('hidden');
                     welcomeModal.style.display = 'none';
                     codeError.classList.add('hidden');
+                    document.body.style.overflow = '';
                     
                     // 显示文件教程链接区域
                     const linkDisplayArea = document.getElementById('link-display-area');
