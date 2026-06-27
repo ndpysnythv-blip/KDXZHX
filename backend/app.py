@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify, g, send_from_directory, session, redi
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_DIR = os.path.dirname(BASE_DIR)
 
-app = Flask(__name__, static_folder=os.path.join(WORKSPACE_DIR, 'workspace'), static_url_path='')
+app = Flask(__name__)
 app.secret_key = 'warranty_admin_secret_key_2024'
 
 DATABASE = os.path.join(BASE_DIR, 'warranty.db')
@@ -82,7 +82,12 @@ def get_client_ip():
 
 @app.route('/')
 def index():
-    return send_from_directory(os.path.join(WORKSPACE_DIR, 'workspace'), 'index.html')
+    return send_from_directory(WORKSPACE_DIR, 'index.html')
+
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    return send_from_directory(WORKSPACE_DIR, filename)
 
 
 @app.route('/api/warranty/apply', methods=['POST'])
@@ -219,8 +224,6 @@ def calculate_remaining_days(expire_date_str):
 
 @app.route('/admin')
 def admin_index():
-    if not session.get('is_admin'):
-        return redirect(url_for('admin_login'))
     return redirect(url_for('admin_list'))
 
 
@@ -244,9 +247,6 @@ def admin_logout():
 
 @app.route('/admin/list')
 def admin_list():
-    if not session.get('is_admin'):
-        return redirect(url_for('admin_login'))
-
     status = request.args.get('status', 'pending')
     db = get_db()
 
@@ -267,9 +267,6 @@ def admin_list():
 
 @app.route('/admin/review/<int:app_id>', methods=['POST'])
 def admin_review(app_id):
-    if not session.get('is_admin'):
-        return jsonify({'success': False, 'message': '未登录'}), 401
-
     action = request.form.get('action', '')
     note = request.form.get('note', '')
     platform = request.form.get('platform', '淘宝/天猫')
@@ -331,9 +328,6 @@ def admin_review(app_id):
 
 @app.route('/admin/orders')
 def admin_orders():
-    if not session.get('is_admin'):
-        return redirect(url_for('admin_login'))
-
     db = get_db()
     orders = db.execute('''
         SELECT * FROM warranty_orders ORDER BY created_at DESC
@@ -344,8 +338,6 @@ def admin_orders():
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    if not session.get('is_admin'):
-        return redirect(url_for('admin_login'))
     return send_from_directory(UPLOAD_FOLDER, filename)
 
 
@@ -399,8 +391,8 @@ ADMIN_LIST_HTML = '''
                 <a href="{{ url_for('admin_orders') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                     <i class="fa-solid fa-list mr-2"></i>已激活订单
                 </a>
-                <a href="{{ url_for('admin_logout') }}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                    <i class="fa-solid fa-right-from-bracket mr-2"></i>退出
+                <a href="{{ url_for('index') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fa-solid fa-house mr-2"></i>返回首页
                 </a>
             </div>
         </div>
@@ -591,8 +583,8 @@ ADMIN_ORDERS_HTML = '''
                 <a href="{{ url_for('admin_list') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <i class="fa-solid fa-clipboard-check mr-2"></i>审核管理
                 </a>
-                <a href="{{ url_for('admin_logout') }}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                    <i class="fa-solid fa-right-from-bracket mr-2"></i>退出
+                <a href="{{ url_for('index') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fa-solid fa-house mr-2"></i>返回首页
                 </a>
             </div>
         </div>
