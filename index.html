@@ -608,12 +608,14 @@
             // 去好评，获取文件教程按钮
             const goReviewBtn = document.getElementById('go-review-btn');
             goReviewBtn.addEventListener('click', () => {
-                // 关闭所有弹窗
+                // 关闭教程弹窗和欢迎弹窗
                 tutorialModal.classList.add('hidden');
-                codeModal.classList.add('hidden');
                 welcomeModal.classList.add('hidden');
-                document.body.style.overflow = '';
-                // 打开链接
+                // 打开提取码弹窗
+                codeModal.classList.remove('hidden');
+                extractCodeInput.focus();
+                document.body.style.overflow = 'hidden';
+                // 打开好评链接
                 window.open('https://h5.m.goofish.com/item?id=858695662693', '_blank');
             });
             
