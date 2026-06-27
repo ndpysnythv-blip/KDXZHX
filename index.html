@@ -689,23 +689,14 @@
                 }
                 
                 if (validExtractCodes.includes(code)) {
-                    // 核对码正确，显示文件教程链接
+                    // 核对码正确，打开文件教程链接
                     codeModal.classList.add('hidden');
                     welcomeModal.style.display = 'none';
                     codeError.classList.add('hidden');
                     document.body.style.overflow = '';
                     
-                    // 显示文件教程链接区域
-                    const linkDisplayArea = document.getElementById('link-display-area');
-                    const linkText = document.getElementById('link-text');
                     const tutorialLink = 'https://pan.quark.cn/s/9885035986db';
-                    
                     window.open(tutorialLink, '_blank');
-                    linkDisplayArea.classList.remove('hidden');
-                    linkDisplayArea.classList.add('breathing-border');
-                    document.querySelector('#link-display-area .font-medium').textContent = '文件教程 链接地址：';
-                    linkText.textContent = tutorialLink;
-                    linkDisplayArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     
                     // 保存提取状态
                     localStorage.setItem('kdxzhx_extracted', 'true');
