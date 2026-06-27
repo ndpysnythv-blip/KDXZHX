@@ -2,12 +2,12 @@ import os
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, g, send_from_directory, session, redirect, url_for, render_template_string
+from flask import Flask, request, jsonify, g, send_from_directory, session, redirect, url_for, render_template, render_template_string
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_DIR = os.path.dirname(BASE_DIR)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'static'), static_url_path='/static')
 app.secret_key = 'warranty_admin_secret_key_2024'
 
 DATABASE = os.path.join(BASE_DIR, 'warranty.db')
@@ -82,12 +82,7 @@ def get_client_ip():
 
 @app.route('/')
 def index():
-    return send_from_directory(WORKSPACE_DIR, 'index.html')
-
-
-@app.route('/<path:filename>')
-def static_files(filename):
-    return send_from_directory(WORKSPACE_DIR, filename)
+    return render_template('index.html')
 
 
 @app.route('/api/warranty/apply', methods=['POST'])
@@ -637,4 +632,4 @@ ADMIN_ORDERS_HTML = '''
 
 if __name__ == '__main__':
     init_db()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
