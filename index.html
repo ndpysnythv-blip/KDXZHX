@@ -297,9 +297,10 @@
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <button 
                     id="welcome-tutorial-btn" 
-                    style="width: 100%; padding: 12px 24px; background-color: #f3f4f6; color: #111111; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;"
+                    style="width: 100%; padding: 12px 24px; background-color: #f3f4f6; color: #111111; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: not-allowed; opacity: 0.5; transition: all 0.3s ease;"
+                    disabled
                 >
-                    <i class="fa-solid fa-book-open" style="margin-right: 8px;"></i>商品简单教程
+                    <i class="fa-solid fa-book-open" style="margin-right: 8px;"></i><span id="tutorial-timer">请阅读10秒后点击</span>
                 </button>
                 <button 
                     id="welcome-code-btn" 
@@ -417,7 +418,7 @@
             </div>
             <button 
                 id="go-review-btn" 
-                class="w-full mt-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors click-animation font-medium"
+                class="w-full mt-4 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-primary transition-colors click-animation font-medium"
             >
                 去好评，获取文件教程
             </button>
@@ -563,6 +564,7 @@
             const welcomeCodeBtn = document.getElementById('welcome-code-btn');
             const welcomeTutorialBtn = document.getElementById('welcome-tutorial-btn');
             const welcomeTimer = document.getElementById('welcome-timer');
+            const tutorialTimer = document.getElementById('tutorial-timer');
             const codeModal = document.getElementById('code-modal');
             const tutorialModal = document.getElementById('tutorial-modal');
             const closeCodeModalBtn = document.getElementById('close-code-modal-btn');
@@ -585,6 +587,12 @@
                     welcomeCodeBtn.style.opacity = '1';
                     welcomeCodeBtn.style.cursor = 'pointer';
                     welcomeCodeBtn.disabled = false;
+                    
+                    // 教程按钮倒计时结束
+                    tutorialTimer.textContent = '简单使用教程';
+                    welcomeTutorialBtn.style.opacity = '1';
+                    welcomeTutorialBtn.style.cursor = 'pointer';
+                    welcomeTutorialBtn.disabled = false;
                 }
             }, 1000);
             
@@ -597,6 +605,12 @@
             // 去好评，获取文件教程按钮
             const goReviewBtn = document.getElementById('go-review-btn');
             goReviewBtn.addEventListener('click', () => {
+                // 关闭所有弹窗
+                tutorialModal.classList.add('hidden');
+                codeModal.classList.add('hidden');
+                welcomeModal.classList.add('hidden');
+                document.body.style.overflow = '';
+                // 打开链接
                 window.open('https://h5.m.goofish.com/item?id=858695662693', '_blank');
             });
             
