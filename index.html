@@ -300,7 +300,7 @@
                     style="width: 100%; padding: 12px 24px; background-color: #f3f4f6; color: #111111; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: not-allowed; opacity: 0.5; transition: all 0.3s ease;"
                     disabled
                 >
-                    <i class="fa-solid fa-book-open" style="margin-right: 8px;"></i><span id="tutorial-timer">请阅读10秒后点击</span>
+                    <i class="fa-solid fa-book-open" style="margin-right: 8px;"></i>简单使用教程
                 </button>
                 <button 
                     id="welcome-code-btn" 
@@ -567,7 +567,6 @@
             const welcomeCodeBtn = document.getElementById('welcome-code-btn');
             const welcomeTutorialBtn = document.getElementById('welcome-tutorial-btn');
             const welcomeTimer = document.getElementById('welcome-timer');
-            const tutorialTimer = document.getElementById('tutorial-timer');
             const codeModal = document.getElementById('code-modal');
             const tutorialModal = document.getElementById('tutorial-modal');
             const closeCodeModalBtn = document.getElementById('close-code-modal-btn');
@@ -591,8 +590,7 @@
                     welcomeCodeBtn.style.cursor = 'pointer';
                     welcomeCodeBtn.disabled = false;
                     
-                    // 教程按钮倒计时结束
-                    tutorialTimer.textContent = '简单使用教程';
+                    // 教程按钮倒计时结束，启用按钮
                     welcomeTutorialBtn.style.opacity = '1';
                     welcomeTutorialBtn.style.cursor = 'pointer';
                     welcomeTutorialBtn.disabled = false;
@@ -615,8 +613,8 @@
                 codeModal.classList.remove('hidden');
                 extractCodeInput.focus();
                 document.body.style.overflow = 'hidden';
-                // 打开好评链接
-                window.open('https://h5.m.goofish.com/item?id=858695662693', '_blank');
+                // 打开闲鱼我买到的订单页面
+                window.open('https://www.goofish.com/order/buyer', '_blank');
             });
             
             // 关闭教程弹窗
