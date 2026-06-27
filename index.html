@@ -200,7 +200,7 @@
                 </button>
             </form>
             <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p class="text-sm text-gray-600"><i class="fa-solid fa-info-circle mr-2 text-blue-400"></i>提交后客服将在1-2个工作日内完成审核，审核通过后质保生效</p>
+                <p class="text-sm text-gray-600"><i class="fa-solid fa-info-circle mr-2 text-blue-400"></i>提交后客服将在5个工作日内完成审核，审核通过后质保生效</p>
             </div>
             <!-- 提交成功提示 -->
             <div id="activate-success" class="hidden mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -1012,7 +1012,7 @@
 
             // 确认激活质保（提交后台审核）
             const activateForm = document.getElementById('activate-form');
-            activateForm.addEventListener('submit', (e) => {
+            activateForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const orderNum = activateOrderInput.value.trim();
                 const screenshot = activateScreenshot.files[0];
@@ -1029,11 +1029,32 @@
                     return;
                 }
                 
-                // 隐藏错误，显示成功提示（实际应提交到后台审核）
                 activateError.classList.add('hidden');
-                activateSuccess.classList.remove('hidden');
-                activateOrderInput.value = '';
-                activateScreenshot.value = '';
+                
+                // 构建表单数据提交到后端
+                const formData = new FormData();
+                formData.append('order_number', orderNum);
+                formData.append('screenshot', screenshot);
+                
+                try {
+                    const res = await fetch('/api/warranty/apply', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        activateSuccess.classList.remove('hidden');
+                        activateOrderInput.value = '';
+                        activateScreenshot.value = '';
+                    } else {
+                        activateError.textContent = data.message || '提交失败，请重试';
+                        activateError.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    activateError.textContent = '网络错误，请稍后重试';
+                    activateError.classList.remove('hidden');
+                }
             });
 
             // 回车确认激活
@@ -1044,35 +1065,57 @@
             });
 
             // 查询质保
-            confirmQueryBtn.addEventListener('click', () => {
+            confirmQueryBtn.addEventListener('click', async () => {
                 const orderNum = queryOrderInput.value.trim();
-                if (!orderNum) {
-                    queryNotFound.classList.remove('hidden');
-                    queryResult.classList.add('hidden');
-                    return;
-                }
+                queryResult.classList.add('hidden');
+                queryNotFound.classList.add('hidden');
                 
-                // 模拟查询结果（实际使用时从服务器获取）
-                // 假设订单号存在则显示信息，不存在则显示未查到
-                const mockOrderExists = orderNum.length >= 5;
-                
-                if (mockOrderExists) {
-                    queryNotFound.classList.add('hidden');
-                    queryResult.classList.remove('hidden');
+                try {
+                    let url = '/api/warranty/query';
+                    if (orderNum) {
+                        url += '?order_number=' + encodeURIComponent(orderNum);
+                    }
                     
-                    // 填充查询结果
-                    queryOrderNum.textContent = orderNum;
-                    queryPlatform.textContent = '淘宝/天猫';
-                    queryDate.textContent = '2024-01-15';
-                    warrantyStatusText.textContent = '质保有效';
-                    queryStatus.textContent = '有效';
-                    queryActivateDate.textContent = '2024-01-15';
-                    queryExpireDate.textContent = '2024-02-14';
-                    queryRemainingDays.textContent = '25天';
-                } else {
-                    queryResult.classList.add('hidden');
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    
+                    if (data.success && data.found) {
+                        queryResult.classList.remove('hidden');
+                        const d = data.data;
+                        queryOrderNum.textContent = d.order_number;
+                        queryPlatform.textContent = d.platform || '-';
+                        queryDate.textContent = d.purchase_date || '-';
+                        warrantyStatusText.textContent = '质保有效';
+                        queryStatus.textContent = '有效';
+                        queryActivateDate.textContent = d.activate_date || '-';
+                        queryExpireDate.textContent = d.expire_date || '-';
+                        queryRemainingDays.textContent = d.remaining_days || '-';
+                        
+                        // 如果是通过IP自动同步的，提示用户
+                        if (data.ip_sync) {
+                            queryOrderInput.value = d.order_number;
+                        }
+                    } else {
+                        queryNotFound.classList.remove('hidden');
+                        if (data.pending) {
+                            const notFoundTitle = queryNotFound.querySelector('.font-medium');
+                            notFoundTitle.textContent = '订单审核中';
+                            const notFoundDesc = queryNotFound.querySelector('.text-gray-600');
+                            notFoundDesc.textContent = '该订单正在审核中，请耐心等待，5个工作日内完成审核';
+                        }
+                    }
+                } catch (err) {
                     queryNotFound.classList.remove('hidden');
+                    const notFoundTitle = queryNotFound.querySelector('.font-medium');
+                    notFoundTitle.textContent = '查询失败';
+                    const notFoundDesc = queryNotFound.querySelector('.text-gray-600');
+                    notFoundDesc.textContent = '网络错误，请稍后重试';
                 }
+            });
+
+            // 页面加载时自动尝试通过IP查询质保信息
+            window.addEventListener('load', () => {
+                // 仅当在查询页面时自动尝试
             });
 
             // 回车确认查询
