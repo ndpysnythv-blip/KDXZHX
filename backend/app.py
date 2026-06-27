@@ -4,11 +4,14 @@ import hashlib
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, g, send_from_directory, session, redirect, url_for, render_template_string
 
-app = Flask(__name__, static_folder='../workspace', static_url_path='')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE_DIR = os.path.dirname(BASE_DIR)
+
+app = Flask(__name__, static_folder=os.path.join(WORKSPACE_DIR, 'workspace'), static_url_path='')
 app.secret_key = 'warranty_admin_secret_key_2024'
 
-DATABASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'warranty.db')
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+DATABASE = os.path.join(BASE_DIR, 'warranty.db')
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ADMIN_USERNAME = 'admin'
@@ -79,7 +82,7 @@ def get_client_ip():
 
 @app.route('/')
 def index():
-    return send_from_directory('../workspace', 'index.html')
+    return send_from_directory(os.path.join(WORKSPACE_DIR, 'workspace'), 'index.html')
 
 
 @app.route('/api/warranty/apply', methods=['POST'])
