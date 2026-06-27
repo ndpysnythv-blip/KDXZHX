@@ -374,17 +374,6 @@
                     </div>
                 </div>
 
-                <!-- 3. 系统要求 -->
-                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
-                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
-                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-3 mr-2"></i>系统要求</h4>
-                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
-                    </div>
-                    <div class="tutorial-content px-4 pb-4 hidden">
-                        <p class="text-sm leading-relaxed">电脑为Windows 10以上系统即可，Mac可能需安装虚拟机。</p>
-                    </div>
-                </div>
-
                 <!-- Q：手表连接上电脑显示未知设备？ -->
                 <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
                     <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
@@ -410,6 +399,20 @@
                     </div>
                 </div>
 
+                <!-- Q：使用须知 -->
+                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
+                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-circle-question mr-2"></i>使用须知</h4>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
+                    </div>
+                    <div class="tutorial-content px-4 pb-4 hidden">
+                        <p class="text-sm leading-relaxed">本商品必须搭配电脑使用才可传输数据。</p>
+                        <p class="text-sm leading-relaxed mt-3">电脑为Windows 10以上系统即可，Mac可能需安装虚拟机。</p>
+                        <p class="text-sm leading-relaxed mt-3">1. 本产品仅用于设备合法维修、官方系统升级操作。</p>
+                        <p class="text-sm leading-relaxed mt-3">2. 本产品禁止搭配快充插头使用。</p>
+                    </div>
+                </div>
+
                 <!-- 温馨提示（不折叠，始终显示） -->
                 <div class="bg-gray-50 rounded-lg p-4">
                     <h4 class="font-semibold text-primary mb-2"><i class="fa-solid fa-lightbulb mr-2"></i>温馨提示</h4>
@@ -417,16 +420,16 @@
                 </div>
             </div>
             <button 
-                id="go-review-btn" 
+                id="close-tutorial-btn" 
                 class="w-full mt-4 py-3 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-primary transition-colors click-animation font-medium"
             >
-                去好评，获取文件教程
+                我知道了
             </button>
             <button 
-                id="close-tutorial-btn" 
-                class="w-full mt-3 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium"
+                id="go-review-btn" 
+                class="w-full mt-3 py-3 bg-[#111111] text-white rounded-lg hover:bg-black transition-colors click-animation font-medium"
             >
-                我知道了
+                去好评，获取文件教程
             </button>
         </div>
     </div>
