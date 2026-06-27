@@ -166,12 +166,83 @@
         </div>
     </section>
 
+    <!-- 激活质保页面 -->
+    <section id="warranty-activate-page" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto hidden">
+        <div class="flex justify-between items-center mb-10">
+            <button id="back-from-activate-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation">
+                <i class="fa-solid fa-arrow-left mr-2"></i>返回
+            </button>
+            <h2 class="text-3xl font-bold">激活质保</h2>
+            <div class="w-20"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-shield-halved text-2xl text-yellow-600"></i>
+                </div>
+                <p class="text-gray-600">请输入好评后获取的核对码激活30天质保</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-medium mb-2">核对码</label>
+                    <input type="text" id="activate-code-input" placeholder="请输入核对码" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-center text-lg tracking-widest" maxlength="16">
+                </div>
+                <div id="activate-error" class="hidden text-red-500 text-sm text-center">
+                    核对码错误，请重试
+                </div>
+                <button id="confirm-activate-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium">
+                    立即激活
+                </button>
+            </div>
+            <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                <p class="text-sm text-gray-600"><i class="fa-solid fa-info-circle mr-2 text-gray-400"></i>质保激活后，自购买之日起30天内有效</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 质保查询页面 -->
+    <section id="warranty-query-page" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto hidden">
+        <div class="flex justify-between items-center mb-10">
+            <button id="back-from-query-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation">
+                <i class="fa-solid fa-arrow-left mr-2"></i>返回
+            </button>
+            <h2 class="text-3xl font-bold">质保查询</h2>
+            <div class="w-20"></div>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-magnifying-glass text-2xl text-blue-600"></i>
+                </div>
+                <p class="text-gray-600">输入订单编号查询质保状态</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block font-medium mb-2">订单编号</label>
+                    <input type="text" id="query-order-input" placeholder="请输入订单编号" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <button id="confirm-query-btn" class="w-full py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium">
+                    查询
+                </button>
+            </div>
+            <div id="query-result" class="mt-6 hidden">
+                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div class="flex items-center mb-2">
+                        <i class="fa-solid fa-check-circle text-green-600 mr-2"></i>
+                        <span class="font-medium text-green-700">质保有效</span>
+                    </div>
+                    <p class="text-sm text-gray-600" id="query-result-text"></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section id="aftersales-page" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto hidden">
         <div class="flex justify-between items-center mb-10">
             <button id="back-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation">
                 <i class="fa-solid fa-arrow-left mr-2"></i>返回首页
             </button>
-            <h2 class="text-3xl font-bold">售后申请</h2>
+            <h2 class="text-3xl font-bold">质保申请</h2>
             <div class="w-32"></div> <!-- 占位，保持标题居中 -->
         </div>
         <form id="aftersales-form" class="space-y-6">
@@ -460,6 +531,39 @@
         </div>
     </div>
 
+    <!-- 质保选项弹窗 -->
+    <div id="warranty-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-md mx-4 w-full">
+            <h3 class="text-xl font-bold mb-6 text-center">30天质保服务</h3>
+            <div class="space-y-3">
+                <button 
+                    id="warranty-activate-btn" 
+                    class="w-full py-4 bg-white text-gray-700 border-2 border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary transition-colors click-animation font-medium text-left px-5"
+                >
+                    <i class="fa-solid fa-shield-halved mr-3 text-primary"></i>激活质保
+                </button>
+                <button 
+                    id="warranty-query-btn" 
+                    class="w-full py-4 bg-white text-gray-700 border-2 border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary transition-colors click-animation font-medium text-left px-5"
+                >
+                    <i class="fa-solid fa-magnifying-glass mr-3 text-primary"></i>质保查询
+                </button>
+                <button 
+                    id="warranty-apply-btn" 
+                    class="w-full py-4 bg-white text-gray-700 border-2 border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary transition-colors click-animation font-medium text-left px-5"
+                >
+                    <i class="fa-solid fa-file-pen mr-3 text-primary"></i>质保申请
+                </button>
+            </div>
+            <button 
+                id="close-warranty-modal-btn" 
+                class="w-full mt-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors click-animation font-medium"
+            >
+                关闭
+            </button>
+        </div>
+    </div>
+
     <section id="preview-page" class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto hidden">
         <h2 class="text-3xl font-bold mb-6 text-center">请您点击保存图片后发送给购买客服进行审核</h2>
         <div class="text-center mb-8">
@@ -469,7 +573,7 @@
         </div>
         
         <div id="preview-content" class="bg-white p-8 rounded-xl shadow-lg">
-            <h3 class="text-xl font-bold mb-6 border-b pb-4">售后申请预览</h3>
+            <h3 class="text-xl font-bold mb-6 border-b pb-4">质保申请预览</h3>
             <div id="preview-details" class="space-y-4"></div>
         </div>
 
@@ -779,14 +883,132 @@
             const techAdvisorBtn = document.getElementById('tech-advisor-btn');
             const qrModal = document.getElementById('qr-modal');
             const closeQrBtn = document.getElementById('close-qr-btn');
+            const warrantyModal = document.getElementById('warranty-modal');
+            const warrantyActivateBtn = document.getElementById('warranty-activate-btn');
+            const warrantyQueryBtn = document.getElementById('warranty-query-btn');
+            const warrantyApplyBtn = document.getElementById('warranty-apply-btn');
+            const closeWarrantyModalBtn = document.getElementById('close-warranty-modal-btn');
+            const warrantyActivatePage = document.getElementById('warranty-activate-page');
+            const warrantyQueryPage = document.getElementById('warranty-query-page');
+            const backFromActivateBtn = document.getElementById('back-from-activate-btn');
+            const backFromQueryBtn = document.getElementById('back-from-query-btn');
+            const activateCodeInput = document.getElementById('activate-code-input');
+            const activateError = document.getElementById('activate-error');
+            const confirmActivateBtn = document.getElementById('confirm-activate-btn');
+            const queryOrderInput = document.getElementById('query-order-input');
+            const confirmQueryBtn = document.getElementById('confirm-query-btn');
+            const queryResult = document.getElementById('query-result');
+            const queryResultText = document.getElementById('query-result-text');
 
+            // 点击30天质保，弹出选项弹窗
             warrantyBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                warrantyModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+
+            // 关闭质保选项弹窗
+            closeWarrantyModalBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+
+            warrantyModal.addEventListener('click', (e) => {
+                if (e.target === warrantyModal) {
+                    warrantyModal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // 隐藏所有页面，显示指定页面
+            function showPage(pageElement) {
                 homePage.classList.add('hidden');
                 consultSection.classList.add('hidden');
-                aftersalesPage.classList.remove('hidden');
+                aftersalesPage.classList.add('hidden');
                 previewPage.classList.add('hidden');
-                aftersalesPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                warrantyActivatePage.classList.add('hidden');
+                warrantyQueryPage.classList.add('hidden');
+                pageElement.classList.remove('hidden');
+                pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // 激活质保
+            warrantyActivateBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+                showPage(warrantyActivatePage);
+            });
+
+            // 质保查询
+            warrantyQueryBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+                showPage(warrantyQueryPage);
+            });
+
+            // 质保申请
+            warrantyApplyBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+                showPage(aftersalesPage);
+            });
+
+            // 从激活页返回
+            backFromActivateBtn.addEventListener('click', () => {
+                showPage(homePage);
+                consultSection.classList.remove('hidden');
+            });
+
+            // 从查询页返回
+            backFromQueryBtn.addEventListener('click', () => {
+                showPage(homePage);
+                consultSection.classList.remove('hidden');
+            });
+
+            // 确认激活质保
+            confirmActivateBtn.addEventListener('click', () => {
+                const code = activateCodeInput.value.trim();
+                if (!code) {
+                    activateError.textContent = '请输入核对码';
+                    activateError.classList.remove('hidden');
+                    return;
+                }
+                
+                if (validExtractCodes.includes(code)) {
+                    activateError.classList.add('hidden');
+                    alert('质保激活成功！自购买之日起30天内有效。');
+                    activateCodeInput.value = '';
+                } else {
+                    activateError.textContent = '核对码错误，请重试';
+                    activateError.classList.remove('hidden');
+                }
+            });
+
+            // 回车确认激活
+            activateCodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    confirmActivateBtn.click();
+                }
+            });
+
+            // 查询质保
+            confirmQueryBtn.addEventListener('click', () => {
+                const orderNum = queryOrderInput.value.trim();
+                if (!orderNum) {
+                    alert('请输入订单编号');
+                    return;
+                }
+                
+                // 模拟查询结果（实际使用时从服务器获取）
+                queryResult.classList.remove('hidden');
+                queryResultText.textContent = `订单号：${orderNum}\n质保状态：有效\n剩余天数：30天`;
+            });
+
+            // 回车查询
+            queryOrderInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    confirmQueryBtn.click();
+                }
             });
 
             backBtn.addEventListener('click', () => {
