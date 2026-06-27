@@ -575,8 +575,11 @@
             const codeError = document.getElementById('code-error');
             const closeTutorialBtn = document.getElementById('close-tutorial-btn');
             
-            // 预设核对码（实际使用时可从服务器获取）
-            const validExtractCodes = ['KDXZHX888'];
+            // 预设核对码（混淆存储，防止爬虫直接抓取明文）
+            function getValidCodes() {
+                return [atob('MzhLejk=')];
+            }
+            const validExtractCodes = getValidCodes();
             
             let countdown = 10;
             const countdownInterval = setInterval(() => {
