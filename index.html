@@ -282,19 +282,13 @@
                 <i class="fa-solid fa-gift" style="font-size: 32px; color: #eab308;"></i>
             </div>
             <h3 style="font-size: 20px; font-weight: bold; margin-bottom: 12px; color: #111111;">温馨提示</h3>
-            <div style="background-color: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+            <div style="background-color: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
                 <p style="color: #374151; line-height: 1.8; margin: 0;">
                     <span style="font-size: 16px;">订单确认收货好评后</span><br>
                     <span style="font-size: 22px; font-weight: 700; color: #111111;">自动发文件教程的提取码</span>
                 </p>
             </div>
-            <p style="font-size: 9px; color: #9ca3af; margin-bottom: 8px; line-height: 1.2; white-space: nowrap;">
-                *好评后才可激活30天质保
-            </p>
-            <p style="font-size: 9px; color: #9ca3af; margin-bottom: 24px; line-height: 1.2; white-space: nowrap;">
-                *非强制，也可以花¥40单独购买或上网寻找相关教程
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
                 <button 
                     id="welcome-tutorial-btn" 
                     style="width: 100%; padding: 12px 24px; background-color: #f3f4f6; color: #111111; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; font-weight: 500; cursor: not-allowed; opacity: 0.5; transition: all 0.3s ease;"
@@ -310,6 +304,12 @@
                     <i class="fa-solid fa-key" style="margin-right: 8px;"></i><span id="welcome-timer">请阅读10秒后点击</span>
                 </button>
             </div>
+            <p style="font-size: 9px; color: #9ca3af; margin-bottom: 6px; line-height: 1.2; white-space: nowrap;">
+                *好评后才可激活30天质保
+            </p>
+            <p style="font-size: 9px; color: #9ca3af; margin-bottom: 0; line-height: 1.2; white-space: nowrap;">
+                *非强制，也可以花¥40单独购买或上网寻找相关教程
+            </p>
         </div>
     </div>
 
@@ -613,8 +613,8 @@
                 codeModal.classList.remove('hidden');
                 extractCodeInput.focus();
                 document.body.style.overflow = 'hidden';
-                // 打开闲鱼我买到的订单页面
-                window.open('https://www.goofish.com/order/buyer', '_blank');
+                // 打开闲鱼商品详情链接
+                window.open('https://h5.m.goofish.com/item?id=858695662693', '_blank');
             });
             
             // 关闭教程弹窗
