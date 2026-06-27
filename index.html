@@ -285,7 +285,7 @@
             <div style="background-color: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
                 <p style="color: #374151; line-height: 1.8; margin: 0;">
                     <span style="font-size: 16px;">订单确认收货好评后</span><br>
-                    <span style="font-size: 22px; font-weight: 700; color: #111111;">自动发文件教程的提取码</span>
+                    <span style="font-size: 22px; font-weight: 700; color: #111111;">自动发文件教程的核对码</span>
                 </p>
             </div>
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
@@ -315,19 +315,19 @@
 
     <div id="code-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] hidden">
         <div class="bg-white rounded-xl p-8 max-w-md mx-4 w-full">
-            <h3 class="text-xl font-bold mb-4 text-center">输入提取码</h3>
-            <p class="text-gray-600 mb-6 text-center text-sm">请输入好评后获取的提取码</p>
+            <h3 class="text-xl font-bold mb-4 text-center">输入核对码</h3>
+            <p class="text-gray-600 mb-6 text-center text-sm">请输入好评后获取的核对码</p>
             <div class="mb-6">
                 <input 
                     type="text" 
                     id="extract-code-input" 
-                    placeholder="请输入提取码"
+                    placeholder="请输入核对码"
                     class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-center text-lg tracking-widest"
                     maxlength="16"
                 >
             </div>
             <div id="code-error" class="hidden text-red-500 text-sm text-center mb-4">
-                提取码错误，请重试
+                核对码错误，请重试
             </div>
             <div class="flex flex-col gap-3">
                 <button 
@@ -575,7 +575,7 @@
             const codeError = document.getElementById('code-error');
             const closeTutorialBtn = document.getElementById('close-tutorial-btn');
             
-            // 预设提取码（实际使用时可从服务器获取）
+            // 预设核对码（实际使用时可从服务器获取）
             const validExtractCodes = ['KDXZHX888'];
             
             let countdown = 10;
@@ -585,7 +585,7 @@
                     welcomeTimer.textContent = `请阅读${countdown}秒后点击`;
                 } else {
                     clearInterval(countdownInterval);
-                    welcomeTimer.textContent = '已好评，输入提取码';
+                    welcomeTimer.textContent = '已好评，输入核对码';
                     welcomeCodeBtn.style.opacity = '1';
                     welcomeCodeBtn.style.cursor = 'pointer';
                     welcomeCodeBtn.disabled = false;
@@ -609,7 +609,7 @@
                 // 关闭教程弹窗和欢迎弹窗
                 tutorialModal.classList.add('hidden');
                 welcomeModal.classList.add('hidden');
-                // 打开提取码弹窗
+                // 打开核对码弹窗
                 codeModal.classList.remove('hidden');
                 extractCodeInput.focus();
                 document.body.style.overflow = 'hidden';
@@ -652,14 +652,14 @@
                 });
             });
             
-            // 已好评，输入提取码按钮
+            // 已好评，输入核对码按钮
             welcomeCodeBtn.addEventListener('click', () => {
                 codeModal.classList.remove('hidden');
                 extractCodeInput.focus();
                 document.body.style.overflow = 'hidden';
             });
             
-            // 关闭提取码弹窗
+            // 关闭核对码弹窗
             closeCodeModalBtn.addEventListener('click', () => {
                 codeModal.classList.add('hidden');
                 codeError.classList.add('hidden');
@@ -676,17 +676,17 @@
                 }
             });
             
-            // 确认提取码
+            // 确认核对码
             confirmCodeBtn.addEventListener('click', () => {
                 const code = extractCodeInput.value.trim();
                 if (!code) {
-                    codeError.textContent = '请输入提取码';
+                    codeError.textContent = '请输入核对码';
                     codeError.classList.remove('hidden');
                     return;
                 }
                 
                 if (validExtractCodes.includes(code)) {
-                    // 提取码正确，显示文件教程链接
+                    // 核对码正确，显示文件教程链接
                     codeModal.classList.add('hidden');
                     welcomeModal.style.display = 'none';
                     codeError.classList.add('hidden');
@@ -707,12 +707,12 @@
                     // 保存提取状态
                     localStorage.setItem('kdxzhx_extracted', 'true');
                 } else {
-                    codeError.textContent = '提取码错误，请重试';
+                    codeError.textContent = '核对码错误，请重试';
                     codeError.classList.remove('hidden');
                 }
             });
             
-            // 回车确认提取码
+            // 回车确认核对码
             extractCodeInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     confirmCodeBtn.click();
@@ -1058,7 +1058,7 @@
                 },
                 {
                     Q: "小天才Z9 Z10刷机文件教程领取",
-                    A: "提取码:确收好评后找购买客服领取",
+                    A: "核对码:确收好评后找购买客服领取",
                     image: "placeholder_image_3"
                 },
                 {
