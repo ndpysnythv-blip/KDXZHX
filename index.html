@@ -348,23 +348,76 @@
     <div id="tutorial-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] hidden">
         <div class="bg-white rounded-xl p-8 max-w-lg mx-4 w-full max-h-[80vh] overflow-y-auto tutorial-scrollbar-hide">
             <h3 class="text-xl font-bold mb-6 text-center">商品简单教程</h3>
-            <div class="space-y-4 text-gray-700">
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-1 mr-2"></i>连接数据线</h4>
-                    <p class="text-sm leading-relaxed">将手表与表托分离，把手表后面的SIM卡后盖拔开，将6点线的6根针对准上面的触点（线朝左边）小心用力插上即可。</p>
-                    <p class="text-sm leading-relaxed mt-2">如插不进，可先卡住一边后再用力压另一边，正常应该与手表严丝合缝。</p>
+            <div class="space-y-3 text-gray-700">
+                <!-- 1. 连接数据线 -->
+                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
+                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-1 mr-2"></i>连接数据线</h4>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
+                    </div>
+                    <div class="tutorial-content px-4 pb-4 hidden">
+                        <p class="text-sm leading-relaxed">将手表与表托分离，把手表后面的SIM卡后盖拔开，将6点线的6根针对准上面的触点（线朝左边）小心用力插上即可。</p>
+                        <p class="text-sm leading-relaxed mt-2">如插不进，可先卡住一边后再用力压另一边，正常应该与手表严丝合缝。</p>
+                    </div>
                 </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-2 mr-2"></i>进入9008模式</h4>
-                    <p class="text-sm leading-relaxed">按照视频教程进入烧录连接手表页面时，请同时长按数据线背部按键和手表电源键进入9008模式（期间不要松手，直到电脑上显示连接成功）。</p>
+
+                <!-- 2. 进入9008模式 -->
+                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
+                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-2 mr-2"></i>进入9008模式</h4>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
+                    </div>
+                    <div class="tutorial-content px-4 pb-4 hidden">
+                        <p class="text-sm leading-relaxed">按照视频教程进入烧录连接手表页面后，请同时长按 数据线背部按键 和 手表电源键 进入9008模式（期间不要松手，直到电脑上显示连接成功）。</p>
+                        <p class="text-sm leading-relaxed mt-2">如果多次尝试还是无法连接可能是网络差，建议换个时间地点或网络环境再试（大佬刷也会遇到这种情况的，有时候会有风控）。</p>
+                    </div>
                 </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-3 mr-2"></i>系统要求</h4>
-                    <p class="text-sm leading-relaxed">电脑为Windows 10以上系统即可，Mac可能需安装虚拟机。</p>
+
+                <!-- 3. 系统要求 -->
+                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
+                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-3 mr-2"></i>系统要求</h4>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
+                    </div>
+                    <div class="tutorial-content px-4 pb-4 hidden">
+                        <p class="text-sm leading-relaxed">电脑为Windows 10以上系统即可，Mac可能需安装虚拟机。</p>
+                    </div>
                 </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h4 class="font-semibold mb-2 text-primary"><i class="fa-solid fa-lightbulb mr-2"></i>温馨提示</h4>
-                    <p class="text-sm leading-relaxed">更多详细操作请查看文件教程，或联系技术顾问获取帮助。</p>
+
+                <!-- Q：手表连接上电脑显示未知设备？ -->
+                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
+                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-circle-question mr-2"></i>手表连接电脑显示未知设备？</h4>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
+                    </div>
+                    <div class="tutorial-content px-4 pb-4 hidden">
+                        <p class="text-sm leading-relaxed"><span class="font-medium text-primary">A：</span>这是正常情况，不代表数据线有任何问题。</p>
+                        <p class="text-sm leading-relaxed mt-2">电脑没有安装任何驱动，是无法让电脑识别出是什么型号的手表的（手机插上非同品牌电脑也会显示未知设备）。</p>
+                        <p class="text-sm leading-relaxed mt-2">只有在您下载了对应机型的安装包，下载了ADB工具箱后才能在里面连接显示型号（所有的新线连接手表都是这样显示，并不是数据线有问题）。</p>
+                    </div>
+                </div>
+
+                <!-- Q：怎么判断数据线是不是坏的？ -->
+                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
+                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-circle-question mr-2"></i>怎么判断数据线是不是坏的？</h4>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
+                    </div>
+                    <div class="tutorial-content px-4 pb-4 hidden">
+                        <p class="text-sm leading-relaxed"><span class="font-medium text-primary">A：</span>只要数据线连接上手表能够正常充电就代表数据线没有任何的问题。</p>
+                        <p class="text-sm leading-relaxed mt-2">其他刷机无法连接，可能是手表没有打开9008模式或者是相关文件没有下载。与数据线没有任何关系。</p>
+                    </div>
+                </div>
+
+                <!-- 温馨提示 -->
+                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
+                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
+                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-lightbulb mr-2"></i>温馨提示</h4>
+                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
+                    </div>
+                    <div class="tutorial-content px-4 pb-4 hidden">
+                        <p class="text-sm leading-relaxed">更多详细操作请查看文件教程，或联系技术顾问获取帮助。</p>
+                    </div>
                 </div>
             </div>
             <button 
@@ -551,6 +604,28 @@
                     tutorialModal.classList.add('hidden');
                     document.body.style.overflow = '';
                 }
+            });
+            
+            // 教程卡片展开/收起
+            const tutorialCards = document.querySelectorAll('.tutorial-card');
+            tutorialCards.forEach(card => {
+                const header = card.querySelector('.tutorial-header');
+                const content = card.querySelector('.tutorial-content');
+                const arrow = card.querySelector('.tutorial-arrow');
+                
+                header.addEventListener('click', () => {
+                    const isOpen = !content.classList.contains('hidden');
+                    
+                    if (isOpen) {
+                        // 收起
+                        content.classList.add('hidden');
+                        arrow.style.transform = 'rotate(0deg)';
+                    } else {
+                        // 展开
+                        content.classList.remove('hidden');
+                        arrow.style.transform = 'rotate(180deg)';
+                    }
+                });
             });
             
             // 已好评，输入提取码按钮
