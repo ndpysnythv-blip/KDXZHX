@@ -828,14 +828,11 @@
                 }
                 
                 if (validExtractCodes.includes(code)) {
-                    // 核对码正确，打开文件教程链接
+                    // 核对码正确，关闭弹窗返回首页
                     codeModal.classList.add('hidden');
                     welcomeModal.style.display = 'none';
                     codeError.classList.add('hidden');
                     document.body.style.overflow = '';
-                    
-                    const tutorialLink = 'https://pan.quark.cn/s/9885035986db';
-                    window.open(tutorialLink, '_blank');
                     
                     // 保存提取状态
                     localStorage.setItem('kdxzhx_extracted', 'true');
