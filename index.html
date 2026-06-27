@@ -409,20 +409,21 @@
                     </div>
                 </div>
 
-                <!-- 温馨提示 -->
-                <div class="bg-gray-50 rounded-lg overflow-hidden tutorial-card">
-                    <div class="tutorial-header p-4 cursor-pointer flex items-center justify-between hover:bg-gray-100 transition-colors">
-                        <h4 class="font-semibold text-primary"><i class="fa-solid fa-lightbulb mr-2"></i>温馨提示</h4>
-                        <i class="fa-solid fa-chevron-down text-gray-400 text-sm transition-transform tutorial-arrow"></i>
-                    </div>
-                    <div class="tutorial-content px-4 pb-4 hidden">
-                        <p class="text-sm leading-relaxed">更多详细操作请查看文件教程，或联系技术顾问获取帮助。</p>
-                    </div>
+                <!-- 温馨提示（不折叠，始终显示） -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-primary mb-2"><i class="fa-solid fa-lightbulb mr-2"></i>温馨提示</h4>
+                    <p class="text-sm leading-relaxed">更多详细操作请好评后查看。</p>
                 </div>
             </div>
             <button 
+                id="go-review-btn" 
+                class="w-full mt-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors click-animation font-medium"
+            >
+                去好评，获取文件教程
+            </button>
+            <button 
                 id="close-tutorial-btn" 
-                class="w-full mt-6 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium"
+                class="w-full mt-3 py-3 bg-primary text-white rounded-lg hover:bg-secondary transition-colors click-animation font-medium"
             >
                 我知道了
             </button>
@@ -591,6 +592,12 @@
             welcomeTutorialBtn.addEventListener('click', () => {
                 tutorialModal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
+            });
+            
+            // 去好评，获取文件教程按钮
+            const goReviewBtn = document.getElementById('go-review-btn');
+            goReviewBtn.addEventListener('click', () => {
+                window.open('https://h5.m.goofish.com/item?id=858695662693', '_blank');
             });
             
             // 关闭教程弹窗
