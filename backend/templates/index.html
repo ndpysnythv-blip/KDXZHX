@@ -843,8 +843,9 @@
             });
             
             // 回车确认核对码
-            extractCodeInput.addEventListener('keypress', (e) => {
+            extractCodeInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
+                    e.preventDefault();
                     confirmCodeBtn.click();
                 }
             });
