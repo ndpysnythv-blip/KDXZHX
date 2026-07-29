@@ -3,9 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 强制禁止浏览器和CDN缓存，确保每次访问都获取最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>小天才6点数据线 - 官方网站</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // 版本号刷新机制：每次更新修改此版本号，版本不匹配时强制刷新加载最新页
+        (function(){
+            var CURRENT_VERSION = 'v20260729-watermark-final';
+            var v = localStorage.getItem('kdxzhx_page_ver');
+            if (v && v !== CURRENT_VERSION) {
+                localStorage.removeItem('kdxzhx_page_ver');
+                localStorage.removeItem('kdxzhx_extracted');
+                localStorage.removeItem('kdxzhx_device_code');
+                var sep = location.href.includes('?') ? '&' : '?';
+                location.replace(location.href + sep + '_v=' + Date.now());
+                return;
+            }
+            localStorage.setItem('kdxzhx_page_ver', CURRENT_VERSION);
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com?v=20260729"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css?v=20260729">
     
     <script>
         tailwind.config = {

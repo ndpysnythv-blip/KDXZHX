@@ -3,9 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 强制禁止浏览器和CDN缓存，确保每次访问都获取最新版本 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>小天才6点数据线 - 官方网站</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        // 版本号刷新机制：每次更新修改此版本号，版本不匹配时强制刷新加载最新页
+        (function(){
+            var CURRENT_VERSION = 'v20260729-watermark-final';
+            var v = localStorage.getItem('kdxzhx_page_ver');
+            if (v && v !== CURRENT_VERSION) {
+                localStorage.removeItem('kdxzhx_page_ver');
+                localStorage.removeItem('kdxzhx_extracted');
+                localStorage.removeItem('kdxzhx_device_code');
+                // 版本变更后使用带时间戳的参数强制刷新到最新版
+                var sep = location.href.includes('?') ? '&' : '?';
+                location.replace(location.href + sep + '_v=' + Date.now());
+                return;
+            }
+            localStorage.setItem('kdxzhx_page_ver', CURRENT_VERSION);
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com?v=20260729"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css?v=20260729">
     
     <script>
         tailwind.config = {
@@ -111,7 +132,7 @@
 
                 <div class="space-y-5 animate-hidden animate-fade-in-up-delay-2 mb-8">
                     <button 
-                        data-link="https://pan.quark.cn/s/9885035986db"
+                        data-link="https://pan.quark.cn/s/d24cd11001aa"
                         class="block w-full big-button text-center click-animation"
                     >
                         <i class="fa-solid fa-file-pdf mr-3"></i>文件教程
@@ -423,6 +444,9 @@
         <div class="bg-white rounded-xl p-8 max-w-md mx-4 w-full">
             <h3 class="text-xl font-bold mb-4 text-center">输入核对码</h3>
             <p class="text-gray-600 mb-6 text-center text-sm">请输入好评后获取的核对码</p>
+            <p style="font-size: 9px; color: #9ca3af; margin-bottom: 12px; line-height: 1.2; white-space: nowrap; text-align: center;">
+                *非强制，也可以花¥40单独购买或上网寻找相关教程
+            </p>
             <div class="mb-6">
                 <input 
                     type="text" 
@@ -700,8 +724,323 @@
         <p>© 2026 KDXZHX | 小天才6点数据线</p>
     </footer>
 
+    <!-- 设备封禁页面 -->
+    <div id="blocked-page" class="fixed inset-0 bg-white z-[2147483646] hidden items-center justify-center">
+        <div class="max-w-lg mx-4 text-center p-8">
+            <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fa-solid fa-ban text-5xl text-red-500"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">访问受限</h1>
+            <p id="blocked-reason" class="text-gray-600 mb-2">您的设备已被限制访问</p>
+            <div class="mt-8 p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 mb-2">设备标识</p>
+                <p id="blocked-device-code" class="font-mono text-xl font-bold text-gray-800">-</p>
+            </div>
+            <p class="mt-6 text-sm text-gray-400">如有疑问请联系客服</p>
+        </div>
+    </div>
+
+    <!-- 水印层（一机一码防伪水印，覆盖所有页面元素 -->
+    <div id="watermark-layer" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2147483647;overflow:hidden;"></div>
+
     <script>
+        // ============ 设备指纹 & 防伪水印 & 设备封禁检查（尽早执行）
+        // 生成浏览器设备指纹（多维度确保一机一码）
+        function generateDeviceFingerprint() {
+            const components = [
+                navigator.userAgent,
+                navigator.language,
+                navigator.languages ? navigator.languages.join(',') : '',
+                screen.width + 'x' + screen.height,
+                screen.colorDepth,
+                screen.pixelDepth,
+                new Date().getTimezoneOffset(),
+                navigator.hardwareConcurrency || 'unknown',
+                navigator.platform,
+                navigator.doNotTrack || 'unknown',
+                !!window.sessionStorage,
+                !!window.localStorage,
+                !!window.indexedDB,
+                navigator.cookieEnabled,
+                navigator.maxTouchPoints || 0,
+                navigator.vendor || '',
+                navigator.productSub || '',
+                typeof InstallTrigger !== 'undefined' ? 'firefox' : '',
+                !!window.chrome ? 'chrome' : ''
+            ];
+
+            // Canvas指纹
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 250;
+                canvas.height = 60;
+                ctx.textBaseline = 'top';
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#f60';
+                ctx.fillRect(0, 0, 120, 40);
+                ctx.fillStyle = '#069';
+                ctx.fillText('DeviceFP-Test-中文', 5, 18);
+                ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+                ctx.fillText('KDXZHX-©2026', 10, 40);
+                ctx.strokeStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(50, 50, 30, 0, Math.PI * 2);
+                ctx.stroke();
+                components.push(canvas.toDataURL());
+            } catch(e) {
+                components.push('canvas_error');
+            }
+
+            // WebGL指纹
+            try {
+                const glCanvas = document.createElement('canvas');
+                const gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        components.push(gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || '');
+                        components.push(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '');
+                    }
+                    components.push(gl.getParameter(gl.VENDOR) || '');
+                    components.push(gl.getParameter(gl.RENDERER) || '');
+                    components.push(gl.getParameter(gl.VERSION) || '');
+                    components.push(gl.getParameter(gl.SHADING_LANGUAGE_VERSION) || '');
+                } else {
+                        components.push('no_webgl');
+                    }
+            } catch(e) {
+                components.push('webgl_error');
+            }
+
+            // 字体检测
+            try {
+                const baseFonts = ['monospace', 'sans-serif', 'serif'];
+                const testFonts = ['Arial', 'Times New Roman', 'Courier New', 'Microsoft YaHei', 'PingFang SC', 'SimSun', 'SimHei', 'Helvetica', 'Verdana', 'Georgia', 'Trebuchet MS', 'Impact'];
+                const testString = 'mmmmmmmmmmlilili';
+                const fontSizes = ['72px'];
+                function getFontData(font, size) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 120;
+                    canvas.height = 40;
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.fillStyle = '#000';
+                    ctx.font = size + ' ' + font;
+                    ctx.fillText(testString, 0, 35);
+                    return canvas.toDataURL();
+                }
+                let fontSignature = '';
+                for (const f of testFonts) {
+                    for (const s of fontSizes) {
+                        const base = getFontData(baseFonts[0], s);
+                        const test = getFontData(f + ',' + baseFonts[0], s);
+                        if (base !== test) fontSignature += f + ';';
+                    }
+                }
+                components.push(fontSignature);
+            } catch(e) {
+                components.push('font_error');
+            }
+
+            // 拼接并哈希
+            const fingerprintStr = components.join('|');
+            let hash = 0;
+            for (let i = 0; i < fingerprintStr.length; i++) {
+                const char = fingerprintStr.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return 'DEV-' + Math.abs(hash).toString(16).toUpperCase().padStart(8, '0') + '-' + Date.now().toString(36).toUpperCase().slice(-5);
+        }
+
+        // 获取或生成设备码（持久化到localStorage，确保一机一码）
+        function getDeviceCode() {
+            let code = localStorage.getItem('kdxzhx_device_code');
+            if (!code) {
+                code = generateDeviceFingerprint();
+                localStorage.setItem('kdxzhx_device_code', code);
+            }
+            return code;
+        }
+
+        const deviceCode = getDeviceCode();
+
+        // 生成水印（全面覆盖版，输入框内字体也会变浅透明）
+        function createWatermark() {
+            // 动态创建水印层（不依赖HTML中是否存在）
+            let layer = document.getElementById('watermark-layer');
+            if (!layer) {
+                layer = document.createElement('div');
+                layer.id = 'watermark-layer';
+                document.body.appendChild(layer);
+            }
+
+            // 强制设置最高优先级样式
+            layer.style.setProperty('position', 'fixed', 'important');
+            layer.style.setProperty('top', '0', 'important');
+            layer.style.setProperty('left', '0', 'important');
+            layer.style.setProperty('width', '100%', 'important');
+            layer.style.setProperty('height', '100%', 'important');
+            layer.style.setProperty('pointer-events', 'none', 'important');
+            layer.style.setProperty('z-index', '2147483647', 'important');
+            layer.style.setProperty('display', 'block', 'important');
+            layer.style.setProperty('visibility', 'visible', 'important');
+            layer.style.setProperty('opacity', '1', 'important');
+            layer.style.setProperty('overflow', 'hidden', 'important');
+
+            layer.innerHTML = '';
+
+            // 创建canvas生成水印图案（高密度+正片叠底确保白色背景/输入框内也清晰可见）
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            // 小尺寸高密度，确保全面覆盖每个输入框
+            canvas.width = 180;
+            canvas.height = 130;
+            ctx.rotate(-15 * Math.PI / 180);
+            // 品牌标识
+            ctx.font = '900 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+            ctx.textAlign = 'center';
+            ctx.fillText('KDXZHX', 90, 28);
+            // 设备码（红色突出显示，便于溯源）
+            ctx.font = '900 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillStyle = 'rgba(200, 0, 0, 0.65)';
+            ctx.fillText(deviceCode, 90, 58);
+            // 警示文字
+            ctx.font = '700 11px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.40)';
+            ctx.fillText('内部资料 请勿外传', 90, 82);
+            const dataUrl = canvas.toDataURL();
+
+            // 平铺水印（正片叠底模式：白底加深、深底自然，输入框内文字因此变浅透明）
+            layer.style.backgroundImage = 'url(' + dataUrl + ')';
+            layer.style.backgroundRepeat = 'repeat';
+            layer.style.setProperty('mix-blend-mode', 'multiply');
+            layer.style.backgroundSize = '180px 130px';
+
+            // 同时再额外叠一层DOM水印（双重保险防用户通过修改CSS背景图失效）
+            const sub = document.createElement('div');
+            sub.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;background-image:url(' + dataUrl + ');background-repeat:repeat;background-size:180px 130px;mix-blend-mode:multiply;opacity:1;';
+            layer.appendChild(sub);
+
+            // 优先追加到html末尾，确保覆盖所有弹窗
+            if (layer.parentNode !== document.documentElement) {
+                document.documentElement.appendChild(layer);
+            }
+        }
+
+        // 移除水印（核对码验证成功后调用）
+        function removeWatermark() {
+            const layer = document.getElementById('watermark-layer');
+            if (layer) {
+                layer.remove();
+            }
+        }
+
+        // 水印防篡改：防止用户通过开发者工具删除或隐藏水印
+        let protectTimer = null;
+        function protectWatermark() {
+            if (protectTimer) clearInterval(protectTimer);
+            // MutationObserver监听DOM变化
+            if (window.MutationObserver) {
+                const observer = new MutationObserver(function(mutations) {
+                    const isExtracted = localStorage.getItem('kdxzhx_extracted') === 'true';
+                    if (isExtracted) return;
+                    const wm = document.getElementById('watermark-layer');
+                    let needRecreate = false;
+                    // 检查是否被删除
+                    if (!wm) {
+                        needRecreate = true;
+                    } else {
+                        // 检查样式是否被修改
+                        const cs = getComputedStyle(wm);
+                        if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.1 || parseInt(cs.zIndex) < 2147483000) {
+                            needRecreate = true;
+                        }
+                    }
+                    if (needRecreate) {
+                        if (wm) wm.remove();
+                        createWatermark();
+                    }
+                });
+                observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class', 'id'] });
+            }
+            // 定时巡检兜底
+            protectTimer = setInterval(function() {
+                const isExtracted = localStorage.getItem('kdxzhx_extracted') === 'true';
+                if (isExtracted) {
+                    clearInterval(protectTimer);
+                    removeWatermark();
+                    return;
+                }
+                const wm = document.getElementById('watermark-layer');
+                if (!wm || !wm.style.backgroundImage) {
+                    createWatermark();
+                }
+            }, 1500);
+        }
+
+        // 显示封禁页面
+        function showBlockedPage(reason) {
+            const blockedPage = document.getElementById('blocked-page');
+            const blockedReason = document.getElementById('blocked-reason');
+            const blockedDeviceCode = document.getElementById('blocked-device-code');
+            if (blockedReason) blockedReason.textContent = reason || '您的设备已被限制访问';
+            if (blockedDeviceCode) blockedDeviceCode.textContent = deviceCode;
+            if (blockedPage) {
+                blockedPage.classList.remove('hidden');
+                blockedPage.classList.add('flex');
+            }
+            // 隐藏所有其他内容
+            document.body.style.overflow = 'hidden';
+            // 移除水印（封禁页面本身就是限制页）
+            removeWatermark();
+        }
+
+        // 检查设备封禁状态
+        async function checkDeviceStatus() {
+            try {
+                const response = await fetch('/api/device/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ device_code: deviceCode })
+                });
+                const data = await response.json();
+                if (data && data.blocked) {
+                    showBlockedPage(data.reason);
+                }
+            } catch(e) {
+                console.warn('设备检查失败', e);
+            }
+            return true;
+        }
+
+        // 页面加载过程中尽早创建水印
+        function tryCreateWatermark() {
+            const isExtracted = localStorage.getItem('kdxzhx_extracted') === 'true';
+            if (isExtracted) return;
+            if (!document.body) {
+                document.addEventListener('DOMContentLoaded', tryCreateWatermark, { once: true });
+                return;
+            }
+            createWatermark();
+            protectWatermark();
+        }
+        tryCreateWatermark();
+
         document.addEventListener('DOMContentLoaded', () => {
+            // DOM就绪后再次确保水印存在（双重保险）
+            const isExtracted = localStorage.getItem('kdxzhx_extracted') === 'true';
+            if (!isExtracted) {
+                const wm = document.getElementById('watermark-layer');
+                if (!wm || !wm.style.backgroundImage) {
+                    createWatermark();
+                }
+                protectWatermark();
+            }
+            checkDeviceStatus();
+
             const welcomeModal = document.getElementById('welcome-modal');
             const welcomeCodeBtn = document.getElementById('welcome-code-btn');
             const welcomeTutorialBtn = document.getElementById('welcome-tutorial-btn');
@@ -836,6 +1175,8 @@
                     
                     // 保存提取状态
                     localStorage.setItem('kdxzhx_extracted', 'true');
+                    // 验证成功后移除水印
+                    removeWatermark();
                 } else {
                     codeError.textContent = '核对码错误，请重试';
                     codeError.classList.remove('hidden');
