@@ -70,6 +70,28 @@ def init_db():
             UNIQUE(ip_address, order_number)
         )
     ''')
+    # 设备访问记录表（一机一码溯源）
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS device_visitors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_code TEXT NOT NULL UNIQUE,
+            ip_address TEXT,
+            user_agent TEXT,
+            visit_count INTEGER DEFAULT 1,
+            first_visit TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_visit TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    # 设备黑名单表（通过设备码精准封禁）
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS device_blacklist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_code TEXT NOT NULL UNIQUE,
+            reason TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     conn.commit()
     conn.close()
 
@@ -83,6 +105,59 @@ def get_client_ip():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+# ============ 设备码检查 & 访问记录 ============
+@app.route('/api/device/check', methods=['POST'])
+def device_check():
+    try:
+        data = request.get_json() or {}
+        device_code = data.get('device_code', '').strip()
+        ip_address = get_client_ip()
+        user_agent = request.headers.get('User-Agent', '')
+
+        if not device_code:
+            return jsonify({'success': False, 'blocked': False})
+
+        db = get_db()
+
+        # 检查是否在黑名单中
+        blocked = db.execute('''
+            SELECT * FROM device_blacklist WHERE device_code = ?
+        ''', (device_code,)).fetchone()
+
+        if blocked:
+            return jsonify({
+                'success': True,
+                'blocked': True,
+                'reason': blocked['reason'] or '您的设备已被限制访问'
+            })
+
+        # 记录或更新访问记录（用于溯源）
+        existing = db.execute('''
+            SELECT * FROM device_visitors WHERE device_code = ?
+        ''', (device_code,)).fetchone()
+
+        if existing:
+            db.execute('''
+                UPDATE device_visitors
+                SET visit_count = visit_count + 1,
+                    last_visit = CURRENT_TIMESTAMP,
+                    ip_address = ?,
+                    user_agent = ?
+                WHERE device_code = ?
+            ''', (ip_address, user_agent, device_code))
+        else:
+            db.execute('''
+                INSERT INTO device_visitors (device_code, ip_address, user_agent)
+                VALUES (?, ?, ?)
+            ''', (device_code, ip_address, user_agent))
+
+        db.commit()
+        return jsonify({'success': True, 'blocked': False})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e), 'blocked': False}), 500
 
 
 @app.route('/api/warranty/apply', methods=['POST'])
@@ -329,6 +404,82 @@ def admin_orders():
     ''').fetchall()
 
     return render_template_string(ADMIN_ORDERS_HTML, orders=orders)
+
+
+# ============ 设备黑名单管理 ============
+def admin_required():
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+    return None
+
+
+@app.route('/admin/blacklist')
+def admin_blacklist():
+    resp = admin_required()
+    if resp: return resp
+
+    db = get_db()
+    # 设备访问记录
+    visitors = db.execute('''
+        SELECT * FROM device_visitors ORDER BY last_visit DESC LIMIT 200
+    ''').fetchall()
+    # 黑名单记录
+    blacklist = db.execute('''
+        SELECT * FROM device_blacklist ORDER BY created_at DESC
+    ''').fetchall()
+
+    bl_set = {b['device_code'] for b in blacklist}
+
+    return render_template_string(
+        ADMIN_BLACKLIST_HTML,
+        visitors=visitors,
+        blacklist=blacklist,
+        bl_set=bl_set
+    )
+
+
+@app.route('/api/admin/blacklist/add', methods=['POST'])
+def blacklist_add():
+    resp = admin_required()
+    if resp: return jsonify({'success': False, 'message': '未登录'}), 401
+
+    try:
+        data = request.get_json() or request.form.to_dict()
+        device_code = (data.get('device_code') or '').strip()
+        reason = (data.get('reason') or '').strip()
+
+        if not device_code:
+            return jsonify({'success': False, 'message': '设备码不能为空'}), 400
+
+        db = get_db()
+        db.execute('''
+            INSERT OR REPLACE INTO device_blacklist (device_code, reason, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        ''', (device_code, reason))
+        db.commit()
+        return jsonify({'success': True, 'message': '已加入黑名单'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/blacklist/remove', methods=['POST'])
+def blacklist_remove():
+    resp = admin_required()
+    if resp: return jsonify({'success': False, 'message': '未登录'}), 401
+
+    try:
+        data = request.get_json() or request.form.to_dict()
+        device_code = (data.get('device_code') or '').strip()
+
+        if not device_code:
+            return jsonify({'success': False, 'message': '设备码不能为空'}), 400
+
+        db = get_db()
+        db.execute('DELETE FROM device_blacklist WHERE device_code = ?', (device_code,))
+        db.commit()
+        return jsonify({'success': True, 'message': '已从黑名单移除'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @app.route('/uploads/<filename>')
@@ -629,6 +780,217 @@ ADMIN_ORDERS_HTML = '''
 </body>
 </html>
 '''
+
+
+# ============ 黑名单管理页面模板 ============
+ADMIN_BLACKLIST_HTML = '''
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备黑名单管理 - 防伪溯源</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="max-w-7xl mx-auto p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h1 class="text-2xl font-bold">
+                <i class="fa-solid fa-shield-halved mr-2 text-blue-600"></i>设备黑名单 & 防伪溯源
+            </h1>
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ url_for('admin_list') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                    <i class="fa-solid fa-clipboard-check mr-2"></i>审核管理
+                </a>
+                <a href="{{ url_for('admin_orders') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                    <i class="fa-solid fa-list mr-2"></i>已激活订单
+                </a>
+                <a href="{{ url_for('index') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                    <i class="fa-solid fa-house mr-2"></i>返回首页
+                </a>
+                <a href="{{ url_for('admin_logout') }}" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm">
+                    <i class="fa-solid fa-right-from-bracket mr-2"></i>退出登录
+                </a>
+            </div>
+        </div>
+
+        <!-- 手动添加黑名单 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-lg font-bold mb-4 text-red-700">
+                <i class="fa-solid fa-ban mr-2"></i>通过设备码手动封禁
+            </h2>
+            <form id="add-blacklist-form" class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">设备码（从水印或下方记录表中复制）</label>
+                    <input id="blk-device-code" type="text" placeholder="如：DEV-XXXXXXXX-XXXXX"
+                        class="w-full p-3 border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-red-500 focus:border-transparent" required>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">封禁原因（选填，用户可见）</label>
+                    <input id="blk-reason" type="text" placeholder="如：资料恶意外泄"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                </div>
+                <div class="sm:min-w-[140px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">&nbsp;</label>
+                    <button type="submit" class="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                        <i class="fa-solid fa-user-lock mr-2"></i>加入黑名单
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 当前黑名单 -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+                <h2 class="text-lg font-bold text-red-800">
+                    <i class="fa-solid fa-circle-xmark mr-2"></i>当前黑名单（{{ blacklist|length }}）
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                {% if blacklist %}
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">设备码</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">封禁原因</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">封禁时间</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for b in blacklist %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm font-mono font-bold text-red-700 select-all">{{ b.device_code }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ b.reason or '未填写' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ b.created_at }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <button onclick="removeBlacklist('{{ b.device_code }}')"
+                                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs">
+                                    <i class="fa-solid fa-check mr-1"></i>解封
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fa-solid fa-shield text-4xl mb-3 text-green-500"></i>
+                    <p>当前无封禁设备，一切正常</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 设备访问记录（溯源用） -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
+                <h2 class="text-lg font-bold text-blue-800">
+                    <i class="fa-solid fa-users mr-2"></i>设备访问记录（最新 {{ visitors|length }} 条）
+                </h2>
+                <p class="text-sm text-blue-600 mt-1">
+                    从水印中读取到设备码后，可在此处查找来源并点击「封禁」按钮
+                </p>
+            </div>
+            <div class="overflow-x-auto">
+                {% if visitors %}
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">设备码</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">IP地址</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">访问次数</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">首次访问</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">最近访问</th>
+                            <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for v in visitors %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm font-mono font-bold text-gray-800 select-all">{{ v.device_code }}</td>
+                            <td class="px-4 py-3 text-sm font-mono text-gray-600">{{ v.ip_address or '-' }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">{{ v.visit_count }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ v.first_visit }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ v.last_visit }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                {% if v.device_code in bl_set %}
+                                <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">
+                                    <i class="fa-solid fa-ban mr-1"></i>已封禁
+                                </span>
+                                <button onclick="removeBlacklist('{{ v.device_code }}')"
+                                    class="ml-1 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs">
+                                    解封
+                                </button>
+                                {% else %}
+                                <button onclick="addBlacklist('{{ v.device_code }}', '资料外泄嫌疑')"
+                                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs">
+                                    <i class="fa-solid fa-ban mr-1"></i>封禁
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-8 text-center text-gray-500">
+                    <i class="fa-solid fa-clock-rotate-left text-4xl mb-3"></i>
+                    <p>暂无访问记录</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 表单提交添加黑名单
+        document.getElementById('add-blacklist-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const code = document.getElementById('blk-device-code').value.trim();
+            const reason = document.getElementById('blk-reason').value.trim();
+            if (!code) { alert('请输入设备码'); return; }
+            addBlacklist(code, reason);
+        });
+
+        function addBlacklist(deviceCode, reason) {
+            fetch('/api/admin/blacklist/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_code: deviceCode, reason: reason || '' })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    alert('已封禁：' + deviceCode);
+                    location.reload();
+                } else {
+                    alert(data.message || '操作失败');
+                }
+            });
+        }
+
+        function removeBlacklist(deviceCode) {
+            if (!confirm('确定要解除对 ' + deviceCode + ' 的封禁吗？')) return;
+            fetch('/api/admin/blacklist/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_code: deviceCode })
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    alert('已解除封禁');
+                    location.reload();
+                } else {
+                    alert(data.message || '操作失败');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+'''
+
 
 if __name__ == '__main__':
     init_db()
