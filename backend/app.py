@@ -1,6 +1,9 @@
 import os
 import sqlite3
 import hashlib
+import json
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, g, send_from_directory, session, redirect, url_for, render_template, render_template_string
 
@@ -97,14 +100,43 @@ def init_db():
 
 
 def get_client_ip():
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    return request.remote_addr
+    """获取用户真实IP，支持多种代理头（CDN/反代场景）"""
+    for header in ['CF-Connecting-IP', 'X-Real-IP', 'X-Forwarded-For', 'X-Original-Forwarded-For', 'True-Client-IP']:
+        ip = request.headers.get(header)
+        if ip:
+            ip = ip.split(',')[0].strip()
+            if ip and ip != 'unknown' and not ip.startswith('127.') and ip != '::1':
+                return ip
+    return request.remote_addr or '127.0.0.1'
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+# ============ IP地理位置定位 ============
+@app.route('/api/location', methods=['GET'])
+def get_location():
+    """通过IP获取用户所在省份城市，用于水印地理编码"""
+    try:
+        ip = get_client_ip()
+        # 本地访问默认广东深圳
+        if ip in ('127.0.0.1', 'localhost', '::1'):
+            return jsonify({'success': True, 'ip': ip, 'province': '广东', 'city': '深圳', 'is_local': True})
+
+        url = f'http://ip-api.com/json/{ip}?lang=zh-CN&fields=status,message,country,regionName,city,query'
+        req = urllib.request.Request(url, headers={'User-Agent': 'KDXZHX-Site/1.0'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+
+        if data.get('status') == 'success' and data.get('country') == '中国':
+            province = (data.get('regionName') or '').replace('省', '').replace('市', '').replace('自治区', '').replace('壮族', '').replace('回族', '').replace('维吾尔', '').replace('特别行政区', '').strip()
+            city = (data.get('city') or '').replace('市', '').replace('地区', '').replace('自治州', '').strip()
+            return jsonify({'success': True, 'ip': ip, 'province': province, 'city': city, 'is_local': False})
+        return jsonify({'success': True, 'ip': ip, 'province': '未知', 'city': '未知', 'is_local': False})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e), 'province': '未知', 'city': '未知'}), 200
 
 
 # ============ 设备码检查 & 访问记录 ============
