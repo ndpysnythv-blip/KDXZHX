@@ -55,6 +55,7 @@ def init_db():
             review_note TEXT
         )
     ''')
+    # 兼容老库：为旧表补齐新增列
     for col_def in [
         ('tracking_number', 'TEXT'),
         ('user_id', 'TEXT'),
@@ -101,6 +102,7 @@ def init_db():
             UNIQUE(ip_address, order_number)
         )
     ''')
+    # 需求3：建立用户手机号与订单/运单号之间的绑定关系，质保查询时按用户账号自动拉取
     c.execute('''
         CREATE TABLE IF NOT EXISTS user_phone_order_mapping (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,6 +121,7 @@ def init_db():
             c.execute(f"ALTER TABLE user_phone_order_mapping ADD COLUMN {col_def[0]} {col_def[1]}")
         except Exception:
             pass
+    # 设备访问记录表（一机一码溯源）
     c.execute('''
         CREATE TABLE IF NOT EXISTS device_visitors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,6 +133,7 @@ def init_db():
             last_visit TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    # 设备黑名单表（通过设备码精准封禁）
     c.execute('''
         CREATE TABLE IF NOT EXISTS device_blacklist (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,6 +148,7 @@ def init_db():
 
 
 def get_client_ip():
+    """获取用户真实IP，支持多种代理头（CDN/反代场景）"""
     for header in ['CF-Connecting-IP', 'X-Real-IP', 'X-Forwarded-For', 'X-Original-Forwarded-For', 'True-Client-IP']:
         ip = request.headers.get(header)
         if ip:
@@ -158,16 +163,21 @@ def index():
     return render_template('index.html')
 
 
+# ============ IP地理位置定位 ============
 @app.route('/api/location', methods=['GET'])
 def get_location():
+    """通过IP获取用户所在省份城市，用于水印地理编码"""
     try:
         ip = get_client_ip()
+        # 本地访问默认广东深圳
         if ip in ('127.0.0.1', 'localhost', '::1'):
             return jsonify({'success': True, 'ip': ip, 'province': '广东', 'city': '深圳', 'is_local': True})
+
         url = f'http://ip-api.com/json/{ip}?lang=zh-CN&fields=status,message,country,regionName,city,query'
         req = urllib.request.Request(url, headers={'User-Agent': 'KDXZHX-Site/1.0'})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode('utf-8'))
+
         if data.get('status') == 'success' and data.get('country') == '中国':
             province = (data.get('regionName') or '').replace('省', '').replace('市', '').replace('自治区', '').replace('壮族', '').replace('回族', '').replace('维吾尔', '').replace('特别行政区', '').strip()
             city = (data.get('city') or '').replace('市', '').replace('地区', '').replace('自治州', '').strip()
@@ -177,6 +187,7 @@ def get_location():
         return jsonify({'success': False, 'message': str(e), 'province': '未知', 'city': '未知'}), 200
 
 
+# ============ 设备码检查 & 访问记录 ============
 @app.route('/api/device/check', methods=['POST'])
 def device_check():
     try:
@@ -184,19 +195,47 @@ def device_check():
         device_code = data.get('device_code', '').strip()
         ip_address = get_client_ip()
         user_agent = request.headers.get('User-Agent', '')
+
         if not device_code:
             return jsonify({'success': False, 'blocked': False})
+
         db = get_db()
-        blocked = db.execute('SELECT * FROM device_blacklist WHERE device_code = ?', (device_code,)).fetchone()
+
+        # 检查是否在黑名单中
+        blocked = db.execute('''
+            SELECT * FROM device_blacklist WHERE device_code = ?
+        ''', (device_code,)).fetchone()
+
         if blocked:
-            return jsonify({'success': True, 'blocked': True, 'reason': blocked['reason'] or '您的设备已被限制访问'})
-        existing = db.execute('SELECT * FROM device_visitors WHERE device_code = ?', (device_code,)).fetchone()
+            return jsonify({
+                'success': True,
+                'blocked': True,
+                'reason': blocked['reason'] or '您的设备已被限制访问'
+            })
+
+        # 记录或更新访问记录（用于溯源）
+        existing = db.execute('''
+            SELECT * FROM device_visitors WHERE device_code = ?
+        ''', (device_code,)).fetchone()
+
         if existing:
-            db.execute('UPDATE device_visitors SET visit_count = visit_count + 1, last_visit = CURRENT_TIMESTAMP, ip_address = ?, user_agent = ? WHERE device_code = ?', (ip_address, user_agent, device_code))
+            db.execute('''
+                UPDATE device_visitors
+                SET visit_count = visit_count + 1,
+                    last_visit = CURRENT_TIMESTAMP,
+                    ip_address = ?,
+                    user_agent = ?
+                WHERE device_code = ?
+            ''', (ip_address, user_agent, device_code))
         else:
-            db.execute('INSERT INTO device_visitors (device_code, ip_address, user_agent) VALUES (?, ?, ?)', (device_code, ip_address, user_agent))
+            db.execute('''
+                INSERT INTO device_visitors (device_code, ip_address, user_agent)
+                VALUES (?, ?, ?)
+            ''', (device_code, ip_address, user_agent))
+
         db.commit()
         return jsonify({'success': True, 'blocked': False})
+
     except Exception as e:
         return jsonify({'success': False, 'message': str(e), 'blocked': False}), 500
 
@@ -213,18 +252,25 @@ def apply_warranty():
         tracking_number = (request.form.get('tracking_number') or '').strip()
         screenshot = request.files.get('screenshot')
         ip_address = get_client_ip()
+
+        # 需求1：运单号和订单号二选一必填
         if not order_number and not tracking_number:
             return jsonify({'success': False, 'message': '订单编号和运单号至少填写一个'}), 400
+
+        # 需求3：从请求头（由Node代理注入）获取用户登录态；若FormData中也带则优先使用
         user_id = (request.form.get('user_id') or _header_str('X-User-Id') or '').strip()
         user_phone = (request.form.get('user_phone') or _header_str('X-User-Phone') or '').strip()
         user_name = (request.form.get('user_name') or _header_str('X-User-Name') or '').strip()
+
         screenshot_path = None
         if screenshot:
+            # 选填订单截图，使用运单号+订单号中的存在值生成文件名
             seed = (order_number or tracking_number or 'no-seed').encode()
             filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{hashlib.md5(seed).hexdigest()[:8]}_{screenshot.filename}"
             screenshot_path = os.path.join(UPLOAD_FOLDER, filename)
             screenshot.save(screenshot_path)
             screenshot_path = filename
+
         db = get_db()
         db.execute('''
             INSERT INTO warranty_applications
@@ -233,6 +279,7 @@ def apply_warranty():
         ''', (order_number or None, tracking_number or None, screenshot_path, ip_address,
               user_id or None, user_phone or None, user_name or None))
         db.commit()
+
         return jsonify({'success': True, 'message': '提交成功，请等待审核'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -257,11 +304,16 @@ def query_warranty():
         order_number = (request.args.get('order_number') or '').strip()
         tracking_number = (request.args.get('tracking_number') or '').strip()
         ip_address = get_client_ip()
+
+        # 需求3：优先按用户账号拉取已绑定质保信息（代理层注入 X-User-* 头）
         user_id = (request.args.get('user_id') or _header_str('X-User-Id') or '').strip()
         user_phone = (request.args.get('user_phone') or _header_str('X-User-Phone') or '').strip()
+
         db = get_db()
         user_sync = False
         order = None
+
+        # 1) 有用户信息 → 直接通过 user_phone_order_mapping 关联已激活订单
         if user_id or user_phone:
             wheres = []
             vals = []
@@ -282,6 +334,8 @@ def query_warranty():
             order = db.execute(sql, vals).fetchone()
             if order:
                 user_sync = True
+
+        # 2) 若用户未命中 + 手动输入了订单号或运单号 → 精确查询
         if not order and (order_number or tracking_number):
             where_clause = []
             where_vals = []
@@ -295,6 +349,8 @@ def query_warranty():
                 f"SELECT * FROM warranty_orders WHERE ({' OR '.join(where_clause)}) AND status = 'active' LIMIT 1",
                 where_vals,
             ).fetchone()
+
+        # 3) 仍未命中：输入为空 + 已登录 → 尝试 IP 兜底；IP 未命中 → 返回未找到
         ip_sync = False
         if not order and not order_number and not tracking_number and not user_sync:
             ip_order = db.execute('''
@@ -306,10 +362,15 @@ def query_warranty():
             if ip_order:
                 order = ip_order
                 ip_sync = True
+
         if order:
+            # 有 IP 则记录 IP 映射；有用户信息则记录用户映射（用于后续自动拉取）
             if ip_address and (order['order_number'] or order['tracking_number']):
                 try:
-                    db.execute('INSERT OR IGNORE INTO ip_order_mapping (ip_address, order_number) VALUES (?, ?)', (ip_address, order['order_number'] or ''))
+                    db.execute('''
+                        INSERT OR IGNORE INTO ip_order_mapping (ip_address, order_number)
+                        VALUES (?, ?)
+                    ''', (ip_address, order['order_number'] or ''))
                 except Exception:
                     pass
             if (user_id or user_phone) and (order['order_number'] or order['tracking_number']):
@@ -323,7 +384,16 @@ def query_warranty():
                 except Exception:
                     pass
             db.commit()
-            return jsonify({'success': True, 'found': True, 'ip_sync': ip_sync, 'user_sync': user_sync, 'data': _serial_order(order)})
+
+            return jsonify({
+                'success': True,
+                'found': True,
+                'ip_sync': ip_sync,
+                'user_sync': user_sync,
+                'data': _serial_order(order),
+            })
+
+        # 未匹配到有效订单 → 检查是否在审核中（订单号/运单号任一命中 pending 申请）
         if order_number or tracking_number:
             where_app = []
             where_app_vals = []
@@ -338,8 +408,18 @@ def query_warranty():
                 where_app_vals,
             ).fetchone()
             if application:
-                return jsonify({'success': True, 'found': False, 'ip_sync': False, 'user_sync': False, 'pending': True, 'message': '该订单正在审核中，请耐心等待'})
-        return jsonify({'success': True, 'found': False, 'ip_sync': ip_sync, 'user_sync': user_sync, 'message': '未查询到相关质保信息'})
+                return jsonify({
+                    'success': True,
+                    'found': False,
+                    'ip_sync': False,
+                    'user_sync': False,
+                    'pending': True,
+                    'message': '该订单正在审核中，请耐心等待',
+                })
+
+        return jsonify({'success': True, 'found': False, 'ip_sync': ip_sync, 'user_sync': user_sync,
+                        'message': '未查询到相关质保信息'})
+
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -355,6 +435,8 @@ def calculate_remaining_days(expire_date_str):
     except:
         return '-'
 
+
+# ==================== 后台管理 ====================
 
 @app.route('/admin')
 def admin_index():
@@ -383,12 +465,19 @@ def admin_logout():
 def admin_list():
     status = request.args.get('status', 'pending')
     db = get_db()
-    applications = db.execute('SELECT * FROM warranty_applications WHERE status = ? ORDER BY created_at DESC', (status,)).fetchall()
+
+    applications = db.execute('''
+        SELECT * FROM warranty_applications
+        WHERE status = ?
+        ORDER BY created_at DESC
+    ''', (status,)).fetchall()
+
     counts = {
-        'pending': db.execute('SELECT COUNT(*) as c FROM warranty_applications WHERE status = "pending"').fetchone()['c'],
-        'approved': db.execute('SELECT COUNT(*) as c FROM warranty_applications WHERE status = "approved"').fetchone()['c'],
-        'rejected': db.execute('SELECT COUNT(*) as c FROM warranty_applications WHERE status = "rejected"').fetchone()['c'],
+        'pending': db.execute("SELECT COUNT(*) as c FROM warranty_applications WHERE status = 'pending'").fetchone()['c'],
+        'approved': db.execute("SELECT COUNT(*) as c FROM warranty_applications WHERE status = 'approved'").fetchone()['c'],
+        'rejected': db.execute("SELECT COUNT(*) as c FROM warranty_applications WHERE status = 'rejected'").fetchone()['c'],
     }
+
     return render_template_string(ADMIN_LIST_HTML, applications=applications, status=status, counts=counts)
 
 
@@ -399,19 +488,33 @@ def admin_review(app_id):
     platform = request.form.get('platform', '淘宝/天猫')
     purchase_date = request.form.get('purchase_date', '')
     warranty_days = int(request.form.get('warranty_days', '30'))
+
     if action not in ['approve', 'reject']:
         return jsonify({'success': False, 'message': '无效操作'}), 400
+
     db = get_db()
     application = db.execute('SELECT * FROM warranty_applications WHERE id = ?', (app_id,)).fetchone()
+
     if not application:
         return jsonify({'success': False, 'message': '申请不存在'}), 404
+
     if application['status'] != 'pending':
         return jsonify({'success': False, 'message': '该申请已处理'}), 400
+
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
     if action == 'approve':
-        db.execute('UPDATE warranty_applications SET status = 'approved', reviewed_at = ?, review_note = ? WHERE id = ?', (now, note, app_id))
+        # 更新申请状态
+        db.execute('''
+            UPDATE warranty_applications SET status = 'approved', reviewed_at = ?, review_note = ?
+            WHERE id = ?
+        ''', (now, note, app_id))
+
+        # 计算激活和到期日期
         activate_date = datetime.now().strftime('%Y-%m-%d')
         expire_date = (datetime.now() + timedelta(days=warranty_days)).strftime('%Y-%m-%d')
+
+        # 插入或更新订单质保信息（订单号允许 NULL；同时写入运单号和用户信息）
         db.execute('''
             INSERT INTO warranty_orders
             (order_number, tracking_number, platform, purchase_date, activate_date, expire_date, status, ip_address, user_id, user_phone, user_name)
@@ -432,11 +535,18 @@ def admin_review(app_id):
               activate_date, expire_date,
               application['ip_address'],
               application['user_id'], application['user_phone'], application['user_name']))
+
+        # 记录IP映射
         if application['ip_address'] and application['order_number']:
             try:
-                db.execute('INSERT OR IGNORE INTO ip_order_mapping (ip_address, order_number) VALUES (?, ?)', (application['ip_address'], application['order_number']))
+                db.execute('''
+                    INSERT OR IGNORE INTO ip_order_mapping (ip_address, order_number)
+                    VALUES (?, ?)
+                ''', (application['ip_address'], application['order_number']))
             except:
                 pass
+
+        # 记录用户映射（用户手机号/ID ↔ 订单号/运单号），用于质保查询时按账号自动拉取
         if application['user_id'] or application['user_phone']:
             try:
                 db.execute('''
@@ -447,8 +557,13 @@ def admin_review(app_id):
                       application['order_number'], application['tracking_number']))
             except:
                 pass
-    else:
-        db.execute('UPDATE warranty_applications SET status = 'rejected', reviewed_at = ?, review_note = ? WHERE id = ?', (now, note, app_id))
+
+    else:  # reject
+        db.execute('''
+            UPDATE warranty_applications SET status = 'rejected', reviewed_at = ?, review_note = ?
+            WHERE id = ?
+        ''', (now, note, app_id))
+
     db.commit()
     return jsonify({'success': True, 'message': '操作成功'})
 
@@ -456,10 +571,14 @@ def admin_review(app_id):
 @app.route('/admin/orders')
 def admin_orders():
     db = get_db()
-    orders = db.execute('SELECT * FROM warranty_orders ORDER BY created_at DESC').fetchall()
+    orders = db.execute('''
+        SELECT * FROM warranty_orders ORDER BY created_at DESC
+    ''').fetchall()
+
     return render_template_string(ADMIN_ORDERS_HTML, orders=orders)
 
 
+# ============ 设备黑名单管理 ============
 def admin_required():
     if not session.get('is_admin'):
         return redirect(url_for('admin_login'))
@@ -470,25 +589,45 @@ def admin_required():
 def admin_blacklist():
     resp = admin_required()
     if resp: return resp
+
     db = get_db()
-    visitors = db.execute('SELECT * FROM device_visitors ORDER BY last_visit DESC LIMIT 200').fetchall()
-    blacklist = db.execute('SELECT * FROM device_blacklist ORDER BY created_at DESC').fetchall()
+    # 设备访问记录
+    visitors = db.execute('''
+        SELECT * FROM device_visitors ORDER BY last_visit DESC LIMIT 200
+    ''').fetchall()
+    # 黑名单记录
+    blacklist = db.execute('''
+        SELECT * FROM device_blacklist ORDER BY created_at DESC
+    ''').fetchall()
+
     bl_set = {b['device_code'] for b in blacklist}
-    return render_template_string(ADMIN_BLACKLIST_HTML, visitors=visitors, blacklist=blacklist, bl_set=bl_set)
+
+    return render_template_string(
+        ADMIN_BLACKLIST_HTML,
+        visitors=visitors,
+        blacklist=blacklist,
+        bl_set=bl_set
+    )
 
 
 @app.route('/api/admin/blacklist/add', methods=['POST'])
 def blacklist_add():
     resp = admin_required()
     if resp: return jsonify({'success': False, 'message': '未登录'}), 401
+
     try:
         data = request.get_json() or request.form.to_dict()
         device_code = (data.get('device_code') or '').strip()
         reason = (data.get('reason') or '').strip()
+
         if not device_code:
             return jsonify({'success': False, 'message': '设备码不能为空'}), 400
+
         db = get_db()
-        db.execute('INSERT OR REPLACE INTO device_blacklist (device_code, reason, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)', (device_code, reason))
+        db.execute('''
+            INSERT OR REPLACE INTO device_blacklist (device_code, reason, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        ''', (device_code, reason))
         db.commit()
         return jsonify({'success': True, 'message': '已加入黑名单'})
     except Exception as e:
@@ -499,11 +638,14 @@ def blacklist_add():
 def blacklist_remove():
     resp = admin_required()
     if resp: return jsonify({'success': False, 'message': '未登录'}), 401
+
     try:
         data = request.get_json() or request.form.to_dict()
         device_code = (data.get('device_code') or '').strip()
+
         if not device_code:
             return jsonify({'success': False, 'message': '设备码不能为空'}), 400
+
         db = get_db()
         db.execute('DELETE FROM device_blacklist WHERE device_code = ?', (device_code,))
         db.commit()
@@ -572,6 +714,7 @@ ADMIN_LIST_HTML = '''
                 </a>
             </div>
         </div>
+
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <div class="flex gap-4 mb-4">
                 <a href="{{ url_for('admin_list', status='pending') }}"
@@ -588,6 +731,7 @@ ADMIN_LIST_HTML = '''
                 </a>
             </div>
         </div>
+
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             {% if applications %}
             <table class="w-full">
@@ -596,9 +740,9 @@ ADMIN_LIST_HTML = '''
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">ID</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">订单编号</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">运单号</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">用户</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">截图</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">IP地址</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">用户</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">申请时间</th>
                         {% if status == 'pending' %}
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">操作</th>
@@ -612,11 +756,18 @@ ADMIN_LIST_HTML = '''
                     {% for app in applications %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-sm text-gray-600">{{ app.id }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ app.order_number or '—' }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ app.tracking_number or '—' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ app.order_number or '-' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ app.tracking_number or '-' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            {% if app.user_phone or app.user_name %}
+                                <div class="font-medium">{{ app.user_name or '-' }}</div>
+                                <div class="text-xs text-gray-400">{{ app.user_phone or '' }}</div>
+                            {% else %}<span class="text-gray-400">未绑定</span>{% endif %}
+                        </td>
                         <td class="px-4 py-3 text-sm">
                             {% if app.screenshot_path %}
-                            <a href="{{ url_for('uploaded_file', filename=app.screenshot_path) }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                            <a href="{{ url_for('uploaded_file', filename=app.screenshot_path) }}" target="_blank"
+                               class="text-blue-600 hover:text-blue-800">
                                 <i class="fa-solid fa-image mr-1"></i>查看
                             </a>
                             {% else %}
@@ -624,14 +775,13 @@ ADMIN_LIST_HTML = '''
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600 font-mono">{{ app.ip_address }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">
-                            {% if app.user_phone %}{{ app.user_phone }}{% endif %}
-                            {% if app.user_name %}<div class="text-xs text-gray-400">{{ app.user_name }}</div>{% endif %}
-                        </td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ app.created_at }}</td>
                         {% if status == 'pending' %}
                         <td class="px-4 py-3 text-sm">
-                            <button onclick="showReviewModal({{ app.id }}, '{{ app.order_number or '无单号' }}')" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">审核</button>
+                            <button onclick="showReviewModal({{ app.id }}, '{{ app.order_number or '' }}')"
+                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                审核
+                            </button>
                         </td>
                         {% else %}
                         <td class="px-4 py-3 text-sm text-gray-600">{{ app.reviewed_at or '-' }}</td>
@@ -649,6 +799,8 @@ ADMIN_LIST_HTML = '''
             {% endif %}
         </div>
     </div>
+
+    <!-- 审核弹窗 -->
     <div id="review-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
             <h3 class="text-lg font-bold mb-4">审核订单 <span id="modal-order-num" class="text-blue-600"></span></h3>
@@ -677,17 +829,28 @@ ADMIN_LIST_HTML = '''
                 </div>
             </div>
             <div class="flex gap-3 mt-6">
-                <button onclick="submitReview('reject')" class="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">拒绝</button>
-                <button onclick="submitReview('approve')" class="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">通过</button>
+                <button onclick="submitReview('reject')"
+                        class="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                    拒绝
+                </button>
+                <button onclick="submitReview('approve')"
+                        class="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                    通过
+                </button>
             </div>
-            <button onclick="closeReviewModal()" class="w-full mt-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">取消</button>
+            <button onclick="closeReviewModal()"
+                    class="w-full mt-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                取消
+            </button>
         </div>
     </div>
+
     <script>
         let currentAppId = null;
+
         function showReviewModal(appId, orderNum) {
             currentAppId = appId;
-            document.getElementById('modal-order-num').textContent = orderNum;
+            document.getElementById('modal-order-num').textContent = orderNum || '(运单号订单)';
             document.getElementById('modal-platform').value = '淘宝/天猫';
             document.getElementById('modal-purchase-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('modal-warranty-days').value = 30;
@@ -695,21 +858,32 @@ ADMIN_LIST_HTML = '''
             document.getElementById('review-modal').classList.remove('hidden');
             document.getElementById('review-modal').classList.add('flex');
         }
+
         function closeReviewModal() {
             document.getElementById('review-modal').classList.add('hidden');
             document.getElementById('review-modal').classList.remove('flex');
             currentAppId = null;
         }
+
         function submitReview(action) {
             if (!currentAppId) return;
+
             const formData = new FormData();
             formData.append('action', action);
             formData.append('note', document.getElementById('modal-note').value);
             formData.append('platform', document.getElementById('modal-platform').value);
             formData.append('purchase_date', document.getElementById('modal-purchase-date').value);
             formData.append('warranty_days', document.getElementById('modal-warranty-days').value);
-            fetch('/admin/review/' + currentAppId, { method: 'POST', body: formData }).then(r => r.json()).then(data => {
-                if (data.success) { location.reload(); } else { alert(data.message); }
+
+            fetch('/admin/review/' + currentAppId, {
+                method: 'POST',
+                body: formData
+            }).then(r => r.json()).then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
             });
         }
     </script>
@@ -741,6 +915,7 @@ ADMIN_ORDERS_HTML = '''
                 </a>
             </div>
         </div>
+
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             {% if orders %}
             <table class="w-full">
@@ -760,8 +935,8 @@ ADMIN_ORDERS_HTML = '''
                 <tbody class="divide-y divide-gray-200">
                     {% for order in orders %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ order.order_number or '—' }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ order.tracking_number or '—' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ order.order_number or '-' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ order.tracking_number or '-' }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ order.platform }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ order.purchase_date or '-' }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ order.activate_date or '-' }}</td>
@@ -774,8 +949,10 @@ ADMIN_ORDERS_HTML = '''
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600">
-                            {% if order.user_phone %}{{ order.user_phone }}{% endif %}
-                            {% if order.user_name %}<div class="text-xs text-gray-400">{{ order.user_name }}</div>{% endif %}
+                            {% if order.user_phone or order.user_name %}
+                                <div class="font-medium">{{ order.user_name or '-' }}</div>
+                                <div class="text-xs text-gray-400">{{ order.user_phone or '' }}</div>
+                            {% else %}<span class="text-gray-400">-</span>{% endif %}
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600 font-mono">{{ order.ip_address or '-' }}</td>
                     </tr>
@@ -795,6 +972,7 @@ ADMIN_ORDERS_HTML = '''
 '''
 
 
+# ============ 黑名单管理页面模板 ============
 ADMIN_BLACKLIST_HTML = '''
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -826,6 +1004,8 @@ ADMIN_BLACKLIST_HTML = '''
                 </a>
             </div>
         </div>
+
+        <!-- 手动添加黑名单 -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
             <h2 class="text-lg font-bold mb-4 text-red-700">
                 <i class="fa-solid fa-ban mr-2"></i>通过设备码手动封禁
@@ -833,11 +1013,13 @@ ADMIN_BLACKLIST_HTML = '''
             <form id="add-blacklist-form" class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-1">设备码（从水印或下方记录表中复制）</label>
-                    <input id="blk-device-code" type="text" placeholder="如：DEV-XXXXXXXX-XXXXX" class="w-full p-3 border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-red-500 focus:border-transparent" required>
+                    <input id="blk-device-code" type="text" placeholder="如：DEV-XXXXXXXX-XXXXX"
+                        class="w-full p-3 border border-gray-300 rounded-lg font-mono focus:ring-2 focus:ring-red-500 focus:border-transparent" required>
                 </div>
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-1">封禁原因（选填，用户可见）</label>
-                    <input id="blk-reason" type="text" placeholder="如：资料恶意外泄" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                    <input id="blk-reason" type="text" placeholder="如：资料恶意外泄"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
                 </div>
                 <div class="sm:min-w-[140px]">
                     <label class="block text-sm font-medium text-gray-700 mb-1">&nbsp;</label>
@@ -847,6 +1029,8 @@ ADMIN_BLACKLIST_HTML = '''
                 </div>
             </form>
         </div>
+
+        <!-- 当前黑名单 -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-6">
             <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
                 <h2 class="text-lg font-bold text-red-800">
@@ -871,7 +1055,8 @@ ADMIN_BLACKLIST_HTML = '''
                             <td class="px-4 py-3 text-sm text-gray-700">{{ b.reason or '未填写' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">{{ b.created_at }}</td>
                             <td class="px-4 py-3 text-sm">
-                                <button onclick="removeBlacklist('{{ b.device_code }}')" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs">
+                                <button onclick="removeBlacklist('{{ b.device_code }}')"
+                                    class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs">
                                     <i class="fa-solid fa-check mr-1"></i>解封
                                 </button>
                             </td>
@@ -887,12 +1072,16 @@ ADMIN_BLACKLIST_HTML = '''
                 {% endif %}
             </div>
         </div>
+
+        <!-- 设备访问记录（溯源用） -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200 bg-blue-50">
                 <h2 class="text-lg font-bold text-blue-800">
                     <i class="fa-solid fa-users mr-2"></i>设备访问记录（最新 {{ visitors|length }} 条）
                 </h2>
-                <p class="text-sm text-blue-600 mt-1">从水印中读取到设备码后，可在此处查找来源并点击「封禁」按钮</p>
+                <p class="text-sm text-blue-600 mt-1">
+                    从水印中读取到设备码后，可在此处查找来源并点击「封禁」按钮
+                </p>
             </div>
             <div class="overflow-x-auto">
                 {% if visitors %}
@@ -922,9 +1111,13 @@ ADMIN_BLACKLIST_HTML = '''
                                 <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">
                                     <i class="fa-solid fa-ban mr-1"></i>已封禁
                                 </span>
-                                <button onclick="removeBlacklist('{{ v.device_code }}')" class="ml-1 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs">解封</button>
+                                <button onclick="removeBlacklist('{{ v.device_code }}')"
+                                    class="ml-1 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-xs">
+                                    解封
+                                </button>
                                 {% else %}
-                                <button onclick="addBlacklist('{{ v.device_code }}', '资料外泄嫌疑')" class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs">
+                                <button onclick="addBlacklist('{{ v.device_code }}', '资料外泄嫌疑')"
+                                    class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-xs">
                                     <i class="fa-solid fa-ban mr-1"></i>封禁
                                 </button>
                                 {% endif %}
@@ -942,7 +1135,9 @@ ADMIN_BLACKLIST_HTML = '''
             </div>
         </div>
     </div>
+
     <script>
+        // 表单提交添加黑名单
         document.getElementById('add-blacklist-form').addEventListener('submit', function(e) {
             e.preventDefault();
             const code = document.getElementById('blk-device-code').value.trim();
@@ -950,16 +1145,22 @@ ADMIN_BLACKLIST_HTML = '''
             if (!code) { alert('请输入设备码'); return; }
             addBlacklist(code, reason);
         });
+
         function addBlacklist(deviceCode, reason) {
             fetch('/api/admin/blacklist/add', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ device_code: deviceCode, reason: reason || '' })
             }).then(r => r.json()).then(data => {
-                if (data.success) { alert('已封禁：' + deviceCode); location.reload(); }
-                else { alert(data.message || '操作失败'); }
+                if (data.success) {
+                    alert('已封禁：' + deviceCode);
+                    location.reload();
+                } else {
+                    alert(data.message || '操作失败');
+                }
             });
         }
+
         function removeBlacklist(deviceCode) {
             if (!confirm('确定要解除对 ' + deviceCode + ' 的封禁吗？')) return;
             fetch('/api/admin/blacklist/remove', {
@@ -967,8 +1168,12 @@ ADMIN_BLACKLIST_HTML = '''
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ device_code: deviceCode })
             }).then(r => r.json()).then(data => {
-                if (data.success) { alert('已解除封禁'); location.reload(); }
-                else { alert(data.message || '操作失败'); }
+                if (data.success) {
+                    alert('已解除封禁');
+                    location.reload();
+                } else {
+                    alert(data.message || '操作失败');
+                }
             });
         }
     </script>
