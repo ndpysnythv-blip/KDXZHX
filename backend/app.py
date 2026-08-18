@@ -473,9 +473,9 @@ def admin_list():
     ''', (status,)).fetchall()
 
     counts = {
-        'pending': db.execute("SELECT COUNT(*) as c FROM warranty_applications WHERE status = 'pending'").fetchone()['c'],
-        'approved': db.execute("SELECT COUNT(*) as c FROM warranty_applications WHERE status = 'approved'").fetchone()['c'],
-        'rejected': db.execute("SELECT COUNT(*) as c FROM warranty_applications WHERE status = 'rejected'").fetchone()['c'],
+        'pending': db.execute('SELECT COUNT(*) as c FROM warranty_applications WHERE status = "pending"').fetchone()['c'],
+        'approved': db.execute('SELECT COUNT(*) as c FROM warranty_applications WHERE status = "approved"').fetchone()['c'],
+        'rejected': db.execute('SELECT COUNT(*) as c FROM warranty_applications WHERE status = "rejected"').fetchone()['c'],
     }
 
     return render_template_string(ADMIN_LIST_HTML, applications=applications, status=status, counts=counts)
@@ -739,8 +739,6 @@ ADMIN_LIST_HTML = '''
                     <tr>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">ID</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">订单编号</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">运单号</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">用户</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">截图</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">IP地址</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">申请时间</th>
@@ -756,14 +754,7 @@ ADMIN_LIST_HTML = '''
                     {% for app in applications %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 text-sm text-gray-600">{{ app.id }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ app.order_number or '-' }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ app.tracking_number or '-' }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">
-                            {% if app.user_phone or app.user_name %}
-                                <div class="font-medium">{{ app.user_name or '-' }}</div>
-                                <div class="text-xs text-gray-400">{{ app.user_phone or '' }}</div>
-                            {% else %}<span class="text-gray-400">未绑定</span>{% endif %}
-                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ app.order_number }}</td>
                         <td class="px-4 py-3 text-sm">
                             {% if app.screenshot_path %}
                             <a href="{{ url_for('uploaded_file', filename=app.screenshot_path) }}" target="_blank"
@@ -778,7 +769,7 @@ ADMIN_LIST_HTML = '''
                         <td class="px-4 py-3 text-sm text-gray-600">{{ app.created_at }}</td>
                         {% if status == 'pending' %}
                         <td class="px-4 py-3 text-sm">
-                            <button onclick="showReviewModal({{ app.id }}, '{{ app.order_number or '' }}')"
+                            <button onclick="showReviewModal({{ app.id }}, '{{ app.order_number }}')"
                                     class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
                                 审核
                             </button>
@@ -850,7 +841,7 @@ ADMIN_LIST_HTML = '''
 
         function showReviewModal(appId, orderNum) {
             currentAppId = appId;
-            document.getElementById('modal-order-num').textContent = orderNum || '(运单号订单)';
+            document.getElementById('modal-order-num').textContent = orderNum;
             document.getElementById('modal-platform').value = '淘宝/天猫';
             document.getElementById('modal-purchase-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('modal-warranty-days').value = 30;
@@ -922,21 +913,18 @@ ADMIN_ORDERS_HTML = '''
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">订单编号</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">运单号</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">平台</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">购买日期</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">激活日期</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">到期日期</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">状态</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">用户</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-700">IP地址</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     {% for order in orders %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ order.order_number or '-' }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ order.tracking_number or '-' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900 font-medium">{{ order.order_number }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ order.platform }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ order.purchase_date or '-' }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600">{{ order.activate_date or '-' }}</td>
@@ -947,12 +935,6 @@ ADMIN_ORDERS_HTML = '''
                             {% else %}
                             <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">{{ order.status }}</span>
                             {% endif %}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-gray-600">
-                            {% if order.user_phone or order.user_name %}
-                                <div class="font-medium">{{ order.user_name or '-' }}</div>
-                                <div class="text-xs text-gray-400">{{ order.user_phone or '' }}</div>
-                            {% else %}<span class="text-gray-400">-</span>{% endif %}
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-600 font-mono">{{ order.ip_address or '-' }}</td>
                     </tr>

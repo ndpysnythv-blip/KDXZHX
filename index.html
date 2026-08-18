@@ -816,736 +816,1483 @@
                 navigator.hardwareConcurrency || 'unknown',
                 navigator.platform,
                 navigator.doNotTrack || 'unknown',
-                navigator.vendor || ''
+                !!window.sessionStorage,
+                !!window.localStorage,
+                !!window.indexedDB,
+                navigator.cookieEnabled,
+                navigator.maxTouchPoints || 0,
+                navigator.vendor || '',
+                navigator.productSub || '',
+                typeof InstallTrigger !== 'undefined' ? 'firefox' : '',
+                !!window.chrome ? 'chrome' : ''
             ];
-            // 简易哈希（同设备稳定即可）
-            let hash = 0;
-            const s = components.join('|||');
-            for (let i = 0; i < s.length; i++) {
-                hash = ((hash << 5) - hash) + s.charCodeAt(i);
-                hash |= 0;
+
+            // Canvas指纹
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 250;
+                canvas.height = 60;
+                ctx.textBaseline = 'top';
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#f60';
+                ctx.fillRect(0, 0, 120, 40);
+                ctx.fillStyle = '#069';
+                ctx.fillText('DeviceFP-Test-中文', 5, 18);
+                ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+                ctx.fillText('KDXZHX-©2026', 10, 40);
+                ctx.strokeStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(50, 50, 30, 0, Math.PI * 2);
+                ctx.stroke();
+                components.push(canvas.toDataURL());
+            } catch(e) {
+                components.push('canvas_error');
             }
-            // 转为形如 DEV-XXXXXXXX-XXXXX 的稳定设备码
-            const hex = Math.abs(hash).toString(16).toUpperCase().padStart(8, '0').slice(0, 8);
-            const part2 = Math.abs((hash * 2654435761) | 0).toString(36).toUpperCase().padStart(5, '0').slice(0, 5);
-            return 'DEV-' + hex + '-' + part2;
+
+            // WebGL指纹
+            try {
+                const glCanvas = document.createElement('canvas');
+                const gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) {
+                        components.push(gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || '');
+                        components.push(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '');
+                    }
+                    components.push(gl.getParameter(gl.VENDOR) || '');
+                    components.push(gl.getParameter(gl.RENDERER) || '');
+                    components.push(gl.getParameter(gl.VERSION) || '');
+                    components.push(gl.getParameter(gl.SHADING_LANGUAGE_VERSION) || '');
+                } else {
+                        components.push('no_webgl');
+                    }
+            } catch(e) {
+                components.push('webgl_error');
+            }
+
+            // 字体检测
+            try {
+                const baseFonts = ['monospace', 'sans-serif', 'serif'];
+                const testFonts = ['Arial', 'Times New Roman', 'Courier New', 'Microsoft YaHei', 'PingFang SC', 'SimSun', 'SimHei', 'Helvetica', 'Verdana', 'Georgia', 'Trebuchet MS', 'Impact'];
+                const testString = 'mmmmmmmmmmlilili';
+                const fontSizes = ['72px'];
+                function getFontData(font, size) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 120;
+                    canvas.height = 40;
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.fillStyle = '#000';
+                    ctx.font = size + ' ' + font;
+                    ctx.fillText(testString, 0, 35);
+                    return canvas.toDataURL();
+                }
+                let fontSignature = '';
+                for (const f of testFonts) {
+                    for (const s of fontSizes) {
+                        const base = getFontData(baseFonts[0], s);
+                        const test = getFontData(f + ',' + baseFonts[0], s);
+                        if (base !== test) fontSignature += f + ';';
+                    }
+                }
+                components.push(fontSignature);
+            } catch(e) {
+                components.push('font_error');
+            }
+
+            // 拼接并哈希
+            const fingerprintStr = components.join('|');
+            let hash = 0;
+            for (let i = 0; i < fingerprintStr.length; i++) {
+                const char = fingerprintStr.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return 'DEV-' + Math.abs(hash).toString(16).toUpperCase().padStart(8, '0') + '-' + Date.now().toString(36).toUpperCase().slice(-5);
         }
 
-        // ============ 设备封禁检查 ============
-        async function checkDeviceBlocked(deviceCode) {
+        // 获取或生成设备码（持久化到localStorage，确保一机一码）
+        function getDeviceCode() {
+            let code = localStorage.getItem('kdxzhx_device_code');
+            if (!code) {
+                code = generateDeviceFingerprint();
+                localStorage.setItem('kdxzhx_device_code', code);
+            }
+            return code;
+        }
+
+        const deviceCode = getDeviceCode();
+
+        // 显示封禁页面
+        function showBlockedPage(reason) {
+            const blockedPage = document.getElementById('blocked-page');
+            const blockedReason = document.getElementById('blocked-reason');
+            const blockedDeviceCode = document.getElementById('blocked-device-code');
+            if (blockedReason) blockedReason.textContent = reason || '您的设备已被限制访问';
+            if (blockedDeviceCode) blockedDeviceCode.textContent = deviceCode;
+            if (blockedPage) {
+                blockedPage.classList.remove('hidden');
+                blockedPage.classList.add('flex');
+            }
+            // 隐藏所有其他内容
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 检查设备封禁状态
+        async function checkDeviceStatus() {
             try {
-                const r = await fetch('/api/device/check', {
+                const response = await fetch('/api/device/check', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ device_code: deviceCode }),
+                    body: JSON.stringify({ device_code: deviceCode })
                 });
-                const d = await r.json();
-                return !!d.blocked ? { blocked: true, reason: d.reason || '' } : { blocked: false };
-            } catch (e) {
-                return { blocked: false };
-            }
-        }
-
-        function showBlockedPage(deviceCode, reason) {
-            const p = document.getElementById('blocked-page');
-            if (!p) return;
-            document.getElementById('blocked-device-code').textContent = deviceCode || '-';
-            if (reason) document.getElementById('blocked-reason').textContent = reason;
-            p.classList.remove('hidden');
-            p.classList.add('flex');
-        }
-
-        // ============ 商城/官网登录态互通：读写 localStorage.shopUser 并 postMessage 给父窗口（iframe） ============
-        // 说明：同域下，localStorage 与父窗口共享；若被嵌在 iframe 中且父窗口是电商域，
-        // 也会通过 postMessage 进行同步（ShopUser = {id, phone, username, token?}）。
-        function readShopUser() {
-            try {
-                const raw = localStorage.getItem('shopUser');
-                if (!raw) return null;
-                return JSON.parse(raw);
-            } catch (e) { return null; }
-        }
-        function writeShopUser(u) {
-            try {
-                if (!u) localStorage.removeItem('shopUser');
-                else localStorage.setItem('shopUser', JSON.stringify(u));
-            } catch (e) {}
-            try {
-                // 同步写 cookie（Node 代理层会解析并注入 X-User-* 头）
-                const v = u ? encodeURIComponent(JSON.stringify(u)) : '';
-                const maxAge = u ? '; max-age=' + (60 * 60 * 24 * 30) : '; max-age=0';
-                document.cookie = 'shopUser=' + v + maxAge + '; path=/; SameSite=Lax';
-            } catch (e) {}
-        }
-        function renderNavUser(u) {
-            const loginBtn = document.getElementById('nav-login-btn');
-            const userArea = document.getElementById('nav-user-area');
-            const nameEl = document.getElementById('nav-user-name');
-            if (!loginBtn || !userArea) return;
-            if (u && (u.id || u.phone || u.username)) {
-                loginBtn.parentElement && loginBtn.parentElement.classList && loginBtn.classList.add('hidden');
-                loginBtn.classList.add('hidden');
-                userArea.classList.remove('hidden');
-                userArea.classList.add('flex');
-                nameEl.textContent = u.username || u.phone || ('用户' + (u.id || ''));
-            } else {
-                loginBtn.classList.remove('hidden');
-                userArea.classList.add('hidden');
-                userArea.classList.remove('flex');
-            }
-        }
-        function ensureUserSynced() {
-            const u = readShopUser();
-            renderNavUser(u);
-            // 若在 iframe 中，主动向父窗口询问 shopUser（兼容跨域 postMessage 约定）
-            try {
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage({ type: 'GET_SHOP_USER', source: 'kdxzhx-site' }, '*');
+                const data = await response.json();
+                if (data && data.blocked) {
+                    showBlockedPage(data.reason);
                 }
-            } catch (e) {}
-        }
-        function navigateToAuth(target) {
-            // 跳出 iframe：与商城登录互通，直接访问主域的 /auth?redirect_uri=...
-            const back = encodeURIComponent(location.href);
-            const url = '/auth?redirect_uri=' + back + '&next=' + (target || '');
-            try { window.top.location.href = url; } catch (e) { location.href = url; }
-        }
-        function logoutCurrentUser() {
-            writeShopUser(null);
-            renderNavUser(null);
-            try { if (window.parent && window.parent !== window) window.parent.postMessage({ type: 'SHOP_LOGOUT', source: 'kdxzhx-site' }, '*'); } catch (e) {}
+            } catch(e) {
+                console.warn('设备检查失败', e);
+            }
+            return true;
         }
 
-        // ============ 页面路由 & 全局通用工具 ============
-        function showPage(id) {
-            const pages = [
-                'home-page','warranty-activate-page','warranty-query-page',
-                'aftersales-page','preview-page','more-products','consult'
-            ];
-            pages.forEach(pid => {
-                const el = document.getElementById(pid);
-                if (!el) return;
-                if (pid === id) el.classList.remove('hidden');
-                else el.classList.add('hidden');
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检查设备封禁状态
+            const isExtracted = localStorage.getItem('kdxzhx_extracted') === 'true';
+            if (!isExtracted) {
+                checkDeviceStatus();
+            }
+
+            const welcomeModal = document.getElementById('welcome-modal');
+            const welcomeCodeBtn = document.getElementById('welcome-code-btn');
+            const welcomeTutorialBtn = document.getElementById('welcome-tutorial-btn');
+            const welcomeTimer = document.getElementById('welcome-timer');
+            const codeModal = document.getElementById('code-modal');
+            const tutorialModal = document.getElementById('tutorial-modal');
+            const closeCodeModalBtn = document.getElementById('close-code-modal-btn');
+            const confirmCodeBtn = document.getElementById('confirm-code-btn');
+            const extractCodeInput = document.getElementById('extract-code-input');
+            const codeError = document.getElementById('code-error');
+            const closeTutorialBtn = document.getElementById('close-tutorial-btn');
+            
+            // 预设核对码（混淆存储，防止爬虫直接抓取明文）
+            function getValidCodes() {
+                return [atob('MzhLejk=')];
+            }
+            const validExtractCodes = getValidCodes();
+            
+            let countdown = 10;
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    welcomeTimer.textContent = `请阅读${countdown}秒后点击`;
+                } else {
+                    clearInterval(countdownInterval);
+                    welcomeTimer.textContent = '已好评，输入核对码';
+                    welcomeCodeBtn.style.opacity = '1';
+                    welcomeCodeBtn.style.cursor = 'pointer';
+                    welcomeCodeBtn.disabled = false;
+                    
+                    // 教程按钮倒计时结束，启用按钮
+                    welcomeTutorialBtn.style.opacity = '1';
+                    welcomeTutorialBtn.style.cursor = 'pointer';
+                    welcomeTutorialBtn.disabled = false;
+                }
+            }, 1000);
+            
+            // 商品简单教程按钮
+            welcomeTutorialBtn.addEventListener('click', () => {
+                tutorialModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
             });
-            if (id === 'consult') document.getElementById('consult').classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function copyText(t) {
-            if (!t) return Promise.resolve(false);
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                return navigator.clipboard.writeText(t).then(() => true).catch(() => fallbackCopy(t));
-            }
-            return Promise.resolve(fallbackCopy(t));
-        }
-        function fallbackCopy(t) {
-            try {
-                const ta = document.createElement('textarea');
-                ta.value = t; ta.style.position='fixed'; ta.style.opacity='0';
-                document.body.appendChild(ta); ta.select();
-                document.execCommand('copy'); document.body.removeChild(ta);
-                return true;
-            } catch (e) { return false; }
-        }
-
-        // ============ QA 搜索（商品咨询）& 搜索历史（localStorage） ============
-        const SEARCH_HIST_KEY = 'kdxzhx_search_history';
-        const QA_DATA_KEY = 'kdxzhx_qa_data';
-        const PRESET_QA = [
-            { Q: "6点数据线怎么连接手表？", A: "把手表与表托分离，将SIM卡后盖拔开，6根针对准上面的触点（线朝左）小心用力插上；插不进可先卡一边再压另一边。" },
-            { Q: "进入9008模式的方法", A: "进入烧录连接页面后，同时长按『数据线背部按键』+『手表电源键』，电脑显示连接成功后再松手。网络/风控差时建议换时间或网络重试。" },
-            { Q: "手表连接电脑显示未知设备是数据线坏了吗？", A: "不是。电脑未安装驱动时都会显示未知设备（手机同理），需下载机型安装包与ADB工具箱后才能识别型号。" },
-            { Q: "如何判断数据线是否损坏？", A: "只要连接手表后可正常充电，就代表数据线物理完好；刷机无法连接通常与9008模式未打开或文件缺失有关，与数据线无关。" },
-            { Q: "使用本产品需要什么电脑系统？", A: "必须搭配电脑使用，建议 Windows 10 及以上；Mac 用户需自行安装虚拟机。" },
-            { Q: "本数据线能做什么？", A: "用于合法维修、官方系统升级等合规场景；请遵守法律法规，禁止搭配快充插头使用。" },
-            { Q: "短接是什么？如何短接？短接教程", A: "短接是指用导体（金属短接夹/镊子）接触主板指定两点，强制让芯片进入 9008 烧录模式的方法。请以对应机型的官方/社区教程为准，切勿随意尝试陌生点位，以免烧板。" },
-            { Q: "为什么进入9008后电脑没反应？", A: "常见原因：数据线未插紧、未同时长按两键、网络/环境风控、电脑缺 Qualcomm 驱动。建议：换 USB 口（优先 USB2.0）、重装驱动、换电脑/网络再试。" },
-            { Q: "质保怎么激活？有效期多久？", A: "首页点击『30天质保』→『激活质保』，填写订单编号或运单号（至少一项），上传订单截图（选填，可加快审核），提交后客服在 5 个工作日内审核；通过后质保即生效，默认 30 天。" },
-            { Q: "如何查询我的质保？", A: "首页点击『30天质保』→『质保查询』，输入订单号或运单号查询；若账号已在本商城登录并绑定过本订单/手机号，可直接查询无需再输入。" },
-            { Q: "如何获取文件教程？", A: "订单确认收货并好评后，系统自动发放提取码；也可花 ¥40 单独购买或自行在网上查找相关公开教程（非强制）。" },
-            { Q: "为什么教程视频有点模糊？", A: "为防止官方/版权方风控抓取，视频会做轻微降清处理，不影响学习使用。" },
-            { Q: "如何联系技术顾问？", A: "首页 →『技术顾问』按钮，扫码添加专属技术顾问微信进行一对一咨询。" },
-            { Q: "商品支持哪些售后方式？", A: "支持 维修 / 换新 / 退货退款 三种，质保期内（30 天）凭订单或运单号在『质保申请』中提交对应材料即可。" },
-            { Q: "为什么首页出现访问受限？", A: "设备码命中了设备黑名单（如资料外泄/违规传播等）。如有疑问请联系购买客服并提供页面显示的设备码进行申诉。" },
-            { Q: "质保数据库和商城账号互通吗？", A: "互通。登录本商城后，激活质保会自动带上您的用户 ID/手机号/用户名；质保查询时也会优先按账号拉取您已绑定的质保记录。" },
-            { Q: "好评后为什么没有收到提取码？", A: "需要订单『确认收货 + 好评 + 文字评价』三者都完成后才会自动发码（系统异步任务，一般 5～30 分钟内）。超时仍未收到的，保存订单截图联系购买客服补发。" },
-        ];
-
-        function importPresetData() {
-            try {
-                let qaData = [];
-                try { qaData = JSON.parse(localStorage.getItem(QA_DATA_KEY)) || []; } catch(e) { qaData = []; }
-                if (!Array.isArray(qaData)) qaData = [];
-                const existSet = new Set((qaData || []).map(i => (i.Q || '').trim()));
-                let added = 0;
-                for (const p of PRESET_QA) {
-                    if (!p || !p.Q) continue;
-                    const k = (p.Q || '').trim();
-                    if (existSet.has(k)) continue;
-                    qaData.push({ Q: p.Q, A: p.A });
-                    existSet.add(k); added++;
+            
+            // 去好评，获取文件教程按钮
+            const goReviewBtn = document.getElementById('go-review-btn');
+            goReviewBtn.addEventListener('click', () => {
+                // 关闭教程弹窗和欢迎弹窗
+                tutorialModal.classList.add('hidden');
+                welcomeModal.classList.add('hidden');
+                // 打开核对码弹窗
+                codeModal.classList.remove('hidden');
+                extractCodeInput.focus();
+                document.body.style.overflow = 'hidden';
+                // 打开闲鱼商品详情链接
+                window.open('https://h5.m.goofish.com/item?id=858695662693', '_blank');
+            });
+            
+            // 关闭教程弹窗
+            closeTutorialBtn.addEventListener('click', () => {
+                tutorialModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+            
+            tutorialModal.addEventListener('click', (e) => {
+                if (e.target === tutorialModal) {
+                    tutorialModal.classList.add('hidden');
+                    document.body.style.overflow = '';
                 }
-                if (added > 0) {
-                    try { localStorage.setItem(QA_DATA_KEY, JSON.stringify(qaData)); } catch (e) {}
-                }
-                return qaData;
-            } catch (e) { return [...PRESET_QA]; }
-        }
-
-        function readSearchHistory() {
-            try {
-                const list = JSON.parse(localStorage.getItem(SEARCH_HIST_KEY) || '[]');
-                return Array.isArray(list) ? list.filter(x => typeof x === 'string') : [];
-            } catch (e) { return []; }
-        }
-        function writeSearchHistory(list) {
-            try { localStorage.setItem(SEARCH_HIST_KEY, JSON.stringify((list || []).slice(0, 20))); } catch(e) {}
-        }
-        function pushSearchHistory(kw) {
-            if (!kw) return;
-            const list = readSearchHistory().filter(x => x !== kw);
-            list.unshift(kw);
-            writeSearchHistory(list);
-            displaySearchHistory();
-        }
-        function displaySearchHistory() {
-            const area = document.getElementById('searchHistory');
-            const ctn = document.getElementById('historyContainer');
-            if (!area || !ctn) return;
-            const list = readSearchHistory();
-            if (!list.length) { area.classList.add('hidden'); ctn.innerHTML = ''; return; }
-            area.classList.remove('hidden');
-            ctn.innerHTML = list.map(k => `<button class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-full text-sm text-blue-700 transition-colors" data-kw="${k.replace(/"/g,'&quot;')}">${k}</button>`).join('');
-            ctn.querySelectorAll('button[data-kw]').forEach(b => {
-                b.addEventListener('click', () => {
-                    const kw = b.getAttribute('data-kw');
-                    const input = document.getElementById('searchInput');
-                    if (input) { input.value = kw; doSearch(kw); }
+            });
+            
+            // 教程卡片展开/收起
+            const tutorialCards = document.querySelectorAll('.tutorial-card');
+            tutorialCards.forEach(card => {
+                const header = card.querySelector('.tutorial-header');
+                const content = card.querySelector('.tutorial-content');
+                const arrow = card.querySelector('.tutorial-arrow');
+                
+                header.addEventListener('click', () => {
+                    const isOpen = !content.classList.contains('hidden');
+                    
+                    if (isOpen) {
+                        // 收起
+                        content.classList.add('hidden');
+                        arrow.style.transform = 'rotate(0deg)';
+                    } else {
+                        // 展开
+                        content.classList.remove('hidden');
+                        arrow.style.transform = 'rotate(180deg)';
+                    }
                 });
             });
-        }
-
-        function doSearch(keyword) {
-            const kw = (keyword || '').trim();
-            const resultsSec = document.getElementById('resultsSection');
-            const ctn = document.getElementById('resultsContainer');
-            if (!resultsSec || !ctn) return;
-            const input = document.getElementById('searchInput');
-            if (!kw) {
-                if (input) input.focus();
-                return;
-            }
-            pushSearchHistory(kw);
-            importPresetData();
-            let qaData = [];
-            try { qaData = JSON.parse(localStorage.getItem(QA_DATA_KEY) || '[]') || []; } catch(e) { qaData = []; }
-            const lower = kw.toLowerCase();
-            const matchedResults = qaData
-                .filter(item => item && (item.Q || item.A))
-                .map(item => {
-                    const q = (item.Q || '').toString();
-                    const a = (item.A || '').toString();
-                    let score = 0;
-                    if (q.toLowerCase().includes(lower)) score += 3;
-                    if (a.toLowerCase().includes(lower)) score += 1;
-                    if (q.toLowerCase() === lower) score += 10;
-                    return { ...item, _score: score, Q: q, A: a };
-                })
-                .filter(i => i._score > 0)
-                .sort((a, b) => b._score - a._score)
-                .slice(0, 50);
-
-            resultsSec.classList.remove('hidden');
-            if (!matchedResults.length) {
-                ctn.innerHTML = `<div class="p-6 bg-white rounded-xl border border-gray-200 text-gray-500 text-center"><i class="fa-solid fa-face-frown-open text-3xl mb-2 text-gray-300"></i><p>未找到与「${kw}」相关的问答，请换个关键词试试或点击右上角「数据库」浏览全部问答。</p></div>`;
-                return;
-            }
-            ctn.innerHTML = matchedResults.map((it, idx) => {
-                const qHtml = highlight(it.Q, kw);
-                const aHtml = highlight(it.A, kw);
-                return `
-                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                    <div class="p-5 cursor-pointer hover:bg-gray-50 transition-colors search-qa-item" data-open="${idx}">
-                        <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center shrink-0">Q</div>
-                            <div class="flex-1 font-medium text-gray-800">${qHtml}</div>
-                            <i class="fa-solid fa-chevron-down text-gray-400 mt-1 transition-transform"></i>
-                        </div>
-                    </div>
-                    <div class="border-t border-gray-100 bg-gray-50/60 p-5 hidden" id="qa-search-body-${idx}">
-                        <div class="flex items-start gap-3">
-                            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center shrink-0">A</div>
-                            <div class="flex-1 text-gray-700 leading-relaxed whitespace-pre-line">${aHtml}</div>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-            ctn.querySelectorAll('.search-qa-item').forEach(it => {
-                it.addEventListener('click', () => {
-                    const idx = it.getAttribute('data-open');
-                    const body = document.getElementById('qa-search-body-' + idx);
-                    if (!body) return;
-                    const open = !body.classList.contains('hidden');
-                    body.classList.toggle('hidden', open);
-                    const icon = it.querySelector('.fa-chevron-down');
-                    if (icon) icon.style.transform = open ? '' : 'rotate(180deg)';
-                });
+            
+            // 已好评，输入核对码按钮
+            welcomeCodeBtn.addEventListener('click', () => {
+                codeModal.classList.remove('hidden');
+                extractCodeInput.focus();
+                document.body.style.overflow = 'hidden';
             });
-        }
-        function escapeHtml(s) {
-            return String(s || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch] || ch));
-        }
-        function highlight(text, kw) {
-            const safe = escapeHtml(text);
-            const k = (kw || '').trim();
-            if (!k) return safe;
-            try {
-                const re = new RegExp('(' + k.replace(/[-\\^$*+?.()|[\]{}]/g, '\\$&') + ')', 'ig');
-                return safe.replace(re, '<mark class="bg-yellow-200 text-yellow-900 px-0.5 rounded">$1</mark>');
-            } catch (e) { return safe; }
-        }
-
-        // ============ 需求4：QA 数据库弹窗（商品咨询最右按钮点击 → 查看全部预设问答） ============
-        function setupQADatabaseModal() {
-            const modal = document.getElementById('qa-database-modal');
-            const openBtn = document.getElementById('show-all-qa-btn');
-            const closeBtn = document.getElementById('close-qa-db-btn');
-            const listEl = document.getElementById('qa-db-list');
-            const countEl = document.getElementById('qa-db-count');
-            const searchEl = document.getElementById('qa-db-search');
-            if (!modal || !openBtn || !closeBtn || !listEl || !countEl) return;
-
-            function getMergedQA() {
-                const all = importPresetData();
-                // 兼容存量数据，去重合并：以 Q 文本为唯一键
-                let custom = Array.isArray(all) ? all : [];
-                try {
-                    const raw = JSON.parse(localStorage.getItem(QA_DATA_KEY) || '[]');
-                    if (Array.isArray(raw)) custom = raw;
-                } catch (e) {}
-                const seen = new Map();
-                for (const it of PRESET_QA) if (it && it.Q) seen.set((it.Q || '').trim(), { Q: it.Q, A: it.A });
-                for (const it of custom) if (it && it.Q) seen.set((it.Q || '').trim(), { Q: it.Q, A: it.A });
-                return Array.from(seen.values());
-            }
-
-            function render(qaAll, kw) {
-                const keyword = (kw || '').trim().toLowerCase();
-                const items = !keyword ? qaAll : qaAll.filter(it => {
-                    return (it.Q || '').toLowerCase().includes(keyword) || (it.A || '').toLowerCase().includes(keyword);
-                });
-                countEl.textContent = String(items.length);
-                if (!items.length) {
-                    listEl.innerHTML = `<div class="p-10 text-center text-gray-400"><i class="fa-solid fa-inbox text-4xl mb-3 text-gray-300"></i><p>暂无匹配的问答，请换关键词试试。</p></div>`;
+            
+            // 关闭核对码弹窗
+            closeCodeModalBtn.addEventListener('click', () => {
+                codeModal.classList.add('hidden');
+                codeError.classList.add('hidden');
+                extractCodeInput.value = '';
+                document.body.style.overflow = '';
+            });
+            
+            codeModal.addEventListener('click', (e) => {
+                if (e.target === codeModal) {
+                    codeModal.classList.add('hidden');
+                    codeError.classList.add('hidden');
+                    extractCodeInput.value = '';
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // 确认核对码
+            confirmCodeBtn.addEventListener('click', () => {
+                const code = extractCodeInput.value.trim();
+                if (!code) {
+                    codeError.textContent = '请输入核对码';
+                    codeError.classList.remove('hidden');
                     return;
                 }
-                listEl.innerHTML = items.map((it, idx) => `
-                    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm qa-db-item">
-                        <button type="button" class="qa-db-q-btn w-full px-5 py-4 text-left flex items-start gap-3 hover:bg-emerald-50/40 transition-colors">
-                            <div class="qa-db-chevron mt-0.5 w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 text-xs font-bold flex items-center justify-center shrink-0 transition-transform">
-                                <i class="fa-solid fa-chevron-right"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-semibold text-gray-800 qa-db-q">${highlight(it.Q, kw || '')}</div>
-                            </div>
-                        </button>
-                        <div class="qa-db-a-wrap hidden px-5 pb-5 pl-14">
-                            <div class="text-sm text-gray-700 leading-relaxed whitespace-pre-line qa-db-a">${highlight(it.A, kw || '')}</div>
-                        </div>
-                    </div>
-                `).join('');
-                listEl.querySelectorAll('.qa-db-q-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const wrap = btn.closest('.qa-db-item');
-                        if (!wrap) return;
-                        const a = wrap.querySelector('.qa-db-a-wrap');
-                        const che = wrap.querySelector('.qa-db-chevron');
-                        if (!a) return;
-                        const open = a.classList.contains('hidden');
-                        a.classList.toggle('hidden', !open);
-                        if (che) che.style.transform = open ? 'rotate(90deg)' : '';
+                
+                if (validExtractCodes.includes(code)) {
+                    // 核对码正确，关闭弹窗返回首页
+                    codeModal.classList.add('hidden');
+                    welcomeModal.style.display = 'none';
+                    codeError.classList.add('hidden');
+                    document.body.style.overflow = '';
+                    
+                    // 保存提取状态
+                    localStorage.setItem('kdxzhx_extracted', 'true');
+                } else {
+                    codeError.textContent = '核对码错误，请重试';
+                    codeError.classList.remove('hidden');
+                }
+            });
+            
+            // 回车确认核对码
+            extractCodeInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmCodeBtn.click();
+                }
+            });
+
+            const animateElements = document.querySelectorAll('.animate-hidden');
+            animateElements.forEach(el => {
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    el.classList.remove('animate-hidden');
+                }, 100);
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
                     });
                 });
-            }
+            });
 
-            function openModal() {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                if (searchEl) searchEl.value = '';
-                render(getMergedQA(), '');
-            }
-            function closeModal() {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
+            const buttons = document.querySelectorAll('[data-link]');
+            const linkDisplayArea = document.getElementById('link-display-area');
+            const linkText = document.getElementById('link-text');
+            const copyBtn = document.getElementById('copy-btn');
+            
+            let currentLink = '';
 
-            openBtn.addEventListener('click', openModal);
-            closeBtn.addEventListener('click', closeModal);
-            modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-            if (searchEl) {
-                let t = null;
-                searchEl.addEventListener('input', () => {
-                    clearTimeout(t);
-                    t = setTimeout(() => render(getMergedQA(), searchEl.value || ''), 120);
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    currentLink = this.getAttribute('data-link');
+                    const buttonName = this.textContent.trim();
+                    
+                    window.open(currentLink, '_blank');
+                    linkDisplayArea.classList.remove('hidden');
+                    linkDisplayArea.classList.add('breathing-border');
+                    document.querySelector('#link-display-area .font-medium').textContent = buttonName + ' 链接地址：';
+                    linkText.textContent = currentLink;
+                    linkDisplayArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
-            }
-        }
+            });
 
-        // ============ 质保激活/查询：二选一 + 选填截图 + 自动带用户信息 ============
-        function setupActivateForm() {
-            const form = document.getElementById('activate-form');
-            if (!form) return;
-            const orderEl = document.getElementById('activate-order-input');
-            const trackEl = document.getElementById('activate-tracking-input');
-            const fileEl = document.getElementById('activate-screenshot');
-            const errEl = document.getElementById('activate-error');
-            const okEl = document.getElementById('activate-success');
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const order = (orderEl.value || '').trim();
-                const track = (trackEl.value || '').trim();
-                if (!order && !track) {
-                    if (errEl) { errEl.classList.remove('hidden'); errEl.textContent = '订单编号和运单号至少填写一个'; }
-                    return;
-                }
-                if (errEl) errEl.classList.add('hidden');
-                if (okEl) okEl.classList.add('hidden');
-                const fd = new FormData();
-                if (order) fd.append('order_number', order);
-                if (track) fd.append('tracking_number', track);
-                if (fileEl && fileEl.files && fileEl.files[0]) fd.append('screenshot', fileEl.files[0]);
-
-                // 需求3：质保系统与商城用户数据库互通 — 自动附带当前登录用户信息
-                const u = readShopUser();
-                if (u) {
-                    if (u.id) fd.append('user_id', String(u.id));
-                    if (u.phone) fd.append('user_phone', String(u.phone));
-                    if (u.username) fd.append('user_name', String(u.username));
-                }
-
-                try {
-                    const r = await fetch('/api/warranty/apply', { method: 'POST', body: fd });
-                    const d = await r.json();
-                    if (d.success) {
-                        if (okEl) { okEl.classList.remove('hidden'); }
-                        form.reset();
-                    } else {
-                        if (errEl) { errEl.classList.remove('hidden'); errEl.textContent = d.message || '提交失败'; }
+            copyBtn.addEventListener('click', async () => {
+                if (currentLink) {
+                    try {
+                        await navigator.clipboard.writeText(currentLink);
+                        copyBtn.innerHTML = '<i class="fa-solid fa-check mr-2"></i>复制成功';
+                        setTimeout(() => {
+                            copyBtn.innerHTML = '<i class="fa-solid fa-copy mr-2"></i>复制链接';
+                        }, 2000);
+                    } catch (err) {
+                        alert('复制失败，请手动复制');
                     }
-                } catch (err) {
-                    if (errEl) { errEl.classList.remove('hidden'); errEl.textContent = (err && err.message) ? err.message : '网络错误，请稍后重试'; }
                 }
             });
-        }
 
-        function setupQueryForm() {
-            const btn = document.getElementById('confirm-query-btn');
-            if (!btn) return;
-            const orderEl = document.getElementById('query-order-input');
-            const trackEl = document.getElementById('query-tracking-input');
-            const resultEl = document.getElementById('query-result');
-            const notFoundEl = document.getElementById('query-not-found');
-            const errText = '请至少填写订单编号或运单号其中一项';
-            function setInlineErr(el, show, msg) {
-                if (!el) return;
-                if (show) { el.classList.remove('hidden'); el.textContent = msg || ''; }
-                else el.classList.add('hidden');
-            }
-
-            async function runQuery(autoUserOnly) {
-                const order = (orderEl.value || '').trim();
-                const track = (trackEl.value || '').trim();
-                if (!autoUserOnly && !order && !track) {
-                    if (resultEl) resultEl.classList.add('hidden');
-                    if (notFoundEl) {
-                        notFoundEl.classList.remove('hidden');
-                        const desc = notFoundEl.querySelector('p');
-                        const title = notFoundEl.querySelector('.font-medium');
-                        if (title) title.textContent = errText;
-                        if (desc) desc.textContent = '请输入订单编号或运单号（或登录商城账号，系统会自动拉取您的质保）。';
-                    }
-                    return;
-                }
-                const u = readShopUser() || {};
-                const params = new URLSearchParams();
-                if (order) params.set('order_number', order);
-                if (track) params.set('tracking_number', track);
-                if (u.id) params.set('user_id', String(u.id));
-                if (u.phone) params.set('user_phone', String(u.phone));
-                try {
-                    const r = await fetch('/api/warranty/query?' + params.toString(), { method: 'GET' });
-                    const d = await r.json();
-                    if (resultEl) resultEl.classList.add('hidden');
-                    if (notFoundEl) notFoundEl.classList.add('hidden');
-                    if (d.success && d.found && d.data) {
-                        const x = d.data || {};
-                        document.getElementById('query-order-num').textContent = x.order_number || '-';
-                        document.getElementById('query-tracking-num').textContent = x.tracking_number || '-';
-                        document.getElementById('query-platform').textContent = x.platform || '-';
-                        document.getElementById('query-date').textContent = x.purchase_date || '-';
-                        document.getElementById('query-status').textContent = (x.status === 'active') ? '有效' : (x.status || '-');
-                        document.getElementById('query-activate-date').textContent = x.activate_date || '-';
-                        document.getElementById('query-expire-date').textContent = x.expire_date || '-';
-                        document.getElementById('query-remaining-days').textContent = x.remaining_days || '-';
-                        const statusBox = document.getElementById('warranty-status');
-                        const statusText = document.getElementById('warranty-status-text');
-                        if (statusBox) {
-                            statusBox.classList.remove('bg-green-50','border-green-200','bg-yellow-50','border-yellow-200');
-                            if (x.status === 'active') { statusBox.classList.add('bg-green-50','border-green-200'); if (statusText) statusText.textContent = '质保有效'; }
-                            else { statusBox.classList.add('bg-yellow-50','border-yellow-200'); if (statusText) statusText.textContent = '质保状态：' + (x.status || '未知'); }
-                        }
-                        if (resultEl) resultEl.classList.remove('hidden');
-                        if (d.user_sync) {
-                            const line = document.createElement('p');
-                            line.className = 'text-xs text-blue-600 mt-2';
-                            line.innerHTML = '<i class="fa-solid fa-circle-info mr-1"></i>已自动为您按商城账号拉取到该绑定订单。';
-                            const info = resultEl.querySelector('.bg-gray-50');
-                            if (info) info.appendChild(line);
-                        }
-                    } else if (d.pending) {
-                        if (notFoundEl) {
-                            notFoundEl.classList.remove('hidden');
-                            const title = notFoundEl.querySelector('.font-medium');
-                            const desc = notFoundEl.querySelector('p');
-                            if (title) title.textContent = d.message || '该订单正在审核中';
-                            if (desc) desc.textContent = '审核通过后即可在此页看到质保详情；耐心等待客服处理。';
-                        }
-                    } else {
-                        if (notFoundEl) {
-                            notFoundEl.classList.remove('hidden');
-                            const title = notFoundEl.querySelector('.font-medium');
-                            const desc = notFoundEl.querySelector('p');
-                            if (title) title.textContent = autoUserOnly ? '该账号下暂未绑定质保信息' : (d.message || '未查到相关质保信息');
-                            if (desc) desc.textContent = autoUserOnly ? '请在下方输入订单编号或运单号进行查询。' : (order || track ? '该订单可能尚未激活质保，或订单编号输入有误。' : '请输入订单编号或运单号查询。');
-                        }
-                    }
-                } catch (err) {
-                    if (notFoundEl) {
-                        notFoundEl.classList.remove('hidden');
-                        const desc = notFoundEl.querySelector('p');
-                        const title = notFoundEl.querySelector('.font-medium');
-                        if (title) title.textContent = '网络错误';
-                        if (desc) desc.textContent = (err && err.message) || '请稍后重试';
-                    }
-                }
-            }
-
-            btn.addEventListener('click', () => runQuery(false));
-            if (orderEl) orderEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runQuery(false); } });
-            if (trackEl) trackEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runQuery(false); } });
-
-            // 需求3：如果用户已登录，优先按用户账号自动拉取一次质保信息（无需用户手动输入）
-            const u = readShopUser();
-            if (u && (u.id || u.phone)) {
-                // 在用户首次点击进入质保查询页后，或页面初始化时，自动拉一次（只命中时展示结果）
-                // 这里放轻量一点：当 商品咨询/查询区 可见时触发一次自动查询，若查到则显示。
-                const observer = new IntersectionObserver((entries) => {
-                    for (const en of entries) {
-                        if (en.isIntersecting) {
-                            observer.disconnect();
-                            runQuery(true);
-                            break;
-                        }
-                    }
-                });
-                const queryPage = document.getElementById('warranty-query-page');
-                if (queryPage) observer.observe(queryPage);
-            }
-        }
-
-        // ============ 首页/路由/导航 相关 ============
-        function setupGeneralNavigation() {
+            const homePage = document.getElementById('home-page');
+            const aftersalesPage = document.getElementById('aftersales-page');
+            const previewPage = document.getElementById('preview-page');
+            const consultSection = document.getElementById('consult');
             const warrantyBtn = document.getElementById('warranty-btn');
+            const aftersalesForm = document.getElementById('aftersales-form');
+            const riskModal = document.getElementById('risk-modal');
+            const riskContent = document.getElementById('risk-content');
+            const agreeRiskBtn = document.getElementById('agree-risk-btn');
+            const saveImageBtn = document.getElementById('save-image-btn');
+            const backBtn = document.getElementById('back-btn');
+            const techAdvisorBtn = document.getElementById('tech-advisor-btn');
+            const qrModal = document.getElementById('qr-modal');
+            const closeQrBtn = document.getElementById('close-qr-btn');
             const warrantyModal = document.getElementById('warranty-modal');
-            const closeWarranty = document.getElementById('close-warranty-modal-btn');
-            function openWarrantyModal() { if (warrantyModal) warrantyModal.classList.remove('hidden'); }
-            function closeWarrantyModal() { if (warrantyModal) warrantyModal.classList.add('hidden'); }
-            if (warrantyBtn) warrantyBtn.addEventListener('click', e => { e.preventDefault(); openWarrantyModal(); });
-            if (closeWarranty) closeWarranty.addEventListener('click', closeWarrantyModal);
-            if (warrantyModal) warrantyModal.addEventListener('click', e => { if (e.target === warrantyModal) closeWarrantyModal(); });
-
             const warrantyActivateBtn = document.getElementById('warranty-activate-btn');
             const warrantyQueryBtn = document.getElementById('warranty-query-btn');
             const warrantyApplyBtn = document.getElementById('warranty-apply-btn');
-            if (warrantyActivateBtn) warrantyActivateBtn.addEventListener('click', () => { closeWarrantyModal(); showPage('warranty-activate-page'); });
-            if (warrantyQueryBtn) warrantyQueryBtn.addEventListener('click', () => { closeWarrantyModal(); showPage('warranty-query-page'); });
-            if (warrantyApplyBtn) warrantyApplyBtn.addEventListener('click', () => { closeWarrantyModal(); showPage('aftersales-page'); });
+            const closeWarrantyModalBtn = document.getElementById('close-warranty-modal-btn');
+            const warrantyActivatePage = document.getElementById('warranty-activate-page');
+            const warrantyQueryPage = document.getElementById('warranty-query-page');
+            const backFromActivateBtn = document.getElementById('back-from-activate-btn');
+            const backFromQueryBtn = document.getElementById('back-from-query-btn');
+            const activateOrderInput = document.getElementById('activate-order-input');
+            const activateTrackingInput = document.getElementById('activate-tracking-input');
+            const activateScreenshot = document.getElementById('activate-screenshot');
+            const activateError = document.getElementById('activate-error');
+            const activateSuccess = document.getElementById('activate-success');
+            const confirmActivateBtn = document.getElementById('confirm-activate-btn');
+            const queryOrderInput = document.getElementById('query-order-input');
+            const queryTrackingInput = document.getElementById('query-tracking-input');
+            const confirmQueryBtn = document.getElementById('confirm-query-btn');
+            const queryResult = document.getElementById('query-result');
+            const queryNotFound = document.getElementById('query-not-found');
+            const queryOrderNum = document.getElementById('query-order-num');
+            const queryTrackingNum = document.getElementById('query-tracking-num');
+            const queryPlatform = document.getElementById('query-platform');
+            const queryDate = document.getElementById('query-date');
+            const warrantyStatusText = document.getElementById('warranty-status-text');
+            const queryStatus = document.getElementById('query-status');
+            const queryActivateDate = document.getElementById('query-activate-date');
+            const queryExpireDate = document.getElementById('query-expire-date');
+            const queryRemainingDays = document.getElementById('query-remaining-days');
 
-            const backAct = document.getElementById('back-from-activate-btn');
-            const backQry = document.getElementById('back-from-query-btn');
-            const back = document.getElementById('back-btn');
-            const backMore = document.getElementById('back-from-products-btn');
-            if (backAct) backAct.addEventListener('click', () => showPage('home-page'));
-            if (backQry) backQry.addEventListener('click', () => showPage('home-page'));
-            if (back) back.addEventListener('click', () => showPage('home-page'));
-            if (backMore) backMore.addEventListener('click', () => showPage('home-page'));
+            // 需求：顶部导航栏登录按钮（与商城登录互通）+ 登录态同步
+            const navAuthArea = document.getElementById('nav-auth-area');
+            const navLoginBtn = document.getElementById('nav-login-btn');
+            const navUserArea = document.getElementById('nav-user-area');
+            const navUserBtn = document.getElementById('nav-user-btn');
+            const navUserName = document.getElementById('nav-user-name');
+            const navLogoutBtn = document.getElementById('nav-logout-btn');
 
-            const moreBtn = document.getElementById('more-products-btn');
-            if (moreBtn) moreBtn.addEventListener('click', e => { e.preventDefault(); showPage('more-products'); });
-
-            // 链接展示区
-            document.querySelectorAll('button[data-link]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const link = btn.getAttribute('data-link') || '';
-                    if (!link) return;
-                    const area = document.getElementById('link-display-area');
-                    const linkText = document.getElementById('link-text');
-                    if (area && linkText) { linkText.textContent = link; area.classList.remove('hidden'); area.scrollIntoView({ behavior: 'smooth' }); }
-                });
-            });
-            const copyBtn = document.getElementById('copy-btn');
-            if (copyBtn) {
-                copyBtn.addEventListener('click', async () => {
-                    const t = (document.getElementById('link-text') || {}).textContent || '';
-                    const ok = await copyText(t);
-                    copyBtn.innerHTML = ok ? '<i class="fa-solid fa-check mr-2"></i>已复制' : '<i class="fa-solid fa-copy mr-2"></i>复制链接';
-                    setTimeout(() => { copyBtn.innerHTML = '<i class="fa-solid fa-copy mr-2"></i>复制链接'; }, 1800);
-                });
-            }
-
-            // 欢迎弹窗：教程按钮/提取码按钮 10s 倒计时后启用
-            const welcomeTutorial = document.getElementById('welcome-tutorial-btn');
-            const welcomeCode = document.getElementById('welcome-code-btn');
-            const welcomeTimer = document.getElementById('welcome-timer');
-            if (welcomeTutorial && welcomeCode && welcomeTimer) {
-                const shown = sessionStorage.getItem('welcomeShown');
-                const welcomeModal = document.getElementById('welcome-modal');
-                if (shown && welcomeModal) { welcomeModal.style.display = 'none'; }
-                let sec = 10;
-                const timerEl = welcomeTimer;
-                const tick = () => {
-                    if (sec <= 0) {
-                        welcomeTutorial.disabled = false;
-                        welcomeTutorial.style.cursor = 'pointer';
-                        welcomeTutorial.style.opacity = '1';
-                        welcomeCode.disabled = false;
-                        welcomeCode.style.cursor = 'pointer';
-                        welcomeCode.style.opacity = '1';
-                        timerEl.textContent = '输入核对码领取';
-                        return;
+            // 与整个商城互通：优先尝试从顶层窗口（主商城页面）读取 shopUser，再读本 iframe localStorage，最后读同域 cookie
+            function getShopUserSafe() {
+                let raw = null;
+                try {
+                    if (window.parent && window.parent !== window && window.parent.localStorage) {
+                        const r = window.parent.localStorage.getItem('shopUser');
+                        if (r) raw = r;
                     }
-                    timerEl.textContent = '请阅读' + sec + '秒后点击';
-                    sec--;
-                    setTimeout(tick, 1000);
-                };
-                tick();
-                welcomeTutorial.addEventListener('click', () => {
-                    const modal = document.getElementById('tutorial-modal');
-                    if (modal) modal.classList.remove('hidden');
-                });
-                welcomeCode.addEventListener('click', () => {
-                    const modal = document.getElementById('code-modal');
-                    if (modal) modal.classList.remove('hidden');
-                });
-                if (welcomeModal) {
-                    const closer = () => { welcomeModal.style.display = 'none'; sessionStorage.setItem('welcomeShown', '1'); };
-                    setTimeout(closer, 30000);
+                } catch (_) { /* 跨域拒绝或父窗口不可达 */ }
+                if (!raw) {
+                    try { raw = localStorage.getItem('shopUser'); } catch (_) { raw = null; }
+                }
+                if (!raw && document.cookie) {
+                    try {
+                        const m = String(document.cookie).match(/(?:^|;\s*)shopUser=([^;]+)/);
+                        if (m && m[1]) raw = decodeURIComponent(m[1]);
+                    } catch (_) { /* ignore */ }
+                }
+                if (!raw) return null;
+                try { const u = JSON.parse(raw); return (u && typeof u === 'object') ? u : null; } catch (_) { return null; }
+            }
+            function refreshNavAuth() {
+                if (!navAuthArea) return;
+                const u = getShopUserSafe();
+                if (navLoginBtn) navLoginBtn.classList.toggle('hidden', !!u);
+                if (navUserArea) {
+                    navUserArea.classList.toggle('hidden', !u);
+                    navUserArea.classList.toggle('flex', !!u);
+                }
+                if (u && navUserName) {
+                    navUserName.textContent = (u.username || u.nickname || u.name || u.phone || '已登录').toString().slice(0, 10);
+                }
+                // 把登录态同步到当前 iframe localStorage，供后续质保表单/查询使用
+                try { if (u) localStorage.setItem('shopUser', JSON.stringify(u)); } catch (_) {}
+            }
+            function gotoAuthLogin() {
+                // 从 iframe 中跳出到主域 /auth（商城原生登录页），登录后 Cookie 全主域共享
+                try {
+                    const after = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+                    const url = '/auth?redirect=' + encodeURIComponent('/dh' + (window.location.hash || ''));
+                    if (window.top && window.top !== window) { window.top.location.href = url; } else { window.location.href = url; }
+                } catch (_) {
+                    window.open('/auth', '_top');
                 }
             }
-            const closeTutorial = document.getElementById('close-tutorial-btn');
-            if (closeTutorial) closeTutorial.addEventListener('click', () => { const m = document.getElementById('tutorial-modal'); if (m) m.classList.add('hidden'); });
-            const closeCode = document.getElementById('close-code-modal-btn');
-            if (closeCode) closeCode.addEventListener('click', () => { const m = document.getElementById('code-modal'); if (m) m.classList.add('hidden'); });
-            // 提取码核对（简化：本地校验一组示例码，实际生产应由后端下发）
-            const confirmCodeBtn = document.getElementById('confirm-code-btn');
-            if (confirmCodeBtn) {
-                confirmCodeBtn.addEventListener('click', () => {
-                    const input = document.getElementById('extract-code-input');
-                    const err = document.getElementById('code-error');
-                    const code = (input.value || '').trim();
-                    if (!code) { if (err) err.classList.remove('hidden'); return; }
-                    const valid = ['KDX-2024', 'KDX-6-POINT', 'HTTX-2025'].includes(code.toUpperCase().replace(/\s+/g,''));
-                    if (!valid) { if (err) { err.classList.remove('hidden'); err.textContent = '核对码错误，请重试'; } return; }
-                    if (err) err.classList.add('hidden');
-                    copyText('https://pan.quark.cn/s/d24cd11001aa').then(() => alert('核对码通过！教程链接已复制到剪贴板，粘贴到浏览器打开即可。'));
-                    const m = document.getElementById('code-modal'); if (m) m.classList.add('hidden');
+            function logoutShopUser() {
+                try {
+                    localStorage.removeItem('shopUser');
+                    if (window.parent && window.parent !== window && window.parent.localStorage) {
+                        try { window.parent.localStorage.removeItem('shopUser'); } catch (_) {}
+                    }
+                } catch (_) {}
+                // 清除 cookie shopUser
+                try {
+                    document.cookie = 'shopUser=; path=/; max-age=0; SameSite=Lax';
+                    document.cookie = 'shopUser=; path=/; domain=' + (location.hostname || '') + '; max-age=0; SameSite=Lax';
+                } catch (_) {}
+                refreshNavAuth();
+            }
+            if (navLoginBtn) navLoginBtn.addEventListener('click', gotoAuthLogin);
+            if (navLogoutBtn) navLogoutBtn.addEventListener('click', () => { if (confirm('确定要退出登录吗？')) logoutShopUser(); });
+            if (navUserBtn) navUserBtn.addEventListener('click', gotoAuthLogin);
+            try { window.addEventListener('storage', () => refreshNavAuth()); } catch (_) {}
+            // 每 3 秒同步一次（避免用户在父窗口登录后 iframe 未刷新）
+            setInterval(refreshNavAuth, 3000);
+            refreshNavAuth();
+
+            // 点击30天质保，弹出选项弹窗
+            warrantyBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                warrantyModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            });
+
+            // 关闭质保选项弹窗
+            closeWarrantyModalBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+
+            warrantyModal.addEventListener('click', (e) => {
+                if (e.target === warrantyModal) {
+                    warrantyModal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            });
+
+            // 隐藏所有页面，显示指定页面
+            function showPage(pageElement) {
+                homePage.classList.add('hidden');
+                consultSection.classList.add('hidden');
+                aftersalesPage.classList.add('hidden');
+                previewPage.classList.add('hidden');
+                warrantyActivatePage.classList.add('hidden');
+                warrantyQueryPage.classList.add('hidden');
+                pageElement.classList.remove('hidden');
+                pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // 激活质保
+            warrantyActivateBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+                showPage(warrantyActivatePage);
+            });
+
+            // 质保查询
+            warrantyQueryBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+                showPage(warrantyQueryPage);
+                // 需求3-2：若已登录（shopUser）→ 直接按账号拉绑定的质保
+                try {
+                    const userStr = localStorage.getItem('shopUser');
+                    if (userStr) {
+                        const u = JSON.parse(userStr);
+                        if (u && (u.id || u.phone)) setTimeout(() => confirmQueryBtn.click(), 250);
+                    }
+                } catch (_) {}
+            });
+
+            // 质保申请
+            warrantyApplyBtn.addEventListener('click', () => {
+                warrantyModal.classList.add('hidden');
+                document.body.style.overflow = '';
+                showPage(aftersalesPage);
+            });
+
+            // 从激活页返回
+            backFromActivateBtn.addEventListener('click', () => {
+                showPage(homePage);
+                consultSection.classList.remove('hidden');
+            });
+
+            // 从查询页返回
+            backFromQueryBtn.addEventListener('click', () => {
+                showPage(homePage);
+                consultSection.classList.remove('hidden');
+            });
+
+            // 确认激活质保（提交后台审核）
+            const activateForm = document.getElementById('activate-form');
+            activateForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const orderNum = activateOrderInput.value.trim();
+                const trackingNum = activateTrackingInput ? activateTrackingInput.value.trim() : '';
+                const screenshot = activateScreenshot.files[0];
+
+                // 二选一必填：订单编号 或 运单号，至少填一个（可同时填）
+                if (!orderNum && !trackingNum) {
+                    activateError.textContent = '订单编号和运单号至少填写一个';
+                    activateError.classList.remove('hidden');
+                    return;
+                }
+
+                activateError.classList.add('hidden');
+
+                // 构建表单数据提交到后端
+                const formData = new FormData();
+                if (orderNum) formData.append('order_number', orderNum);
+                if (trackingNum) formData.append('tracking_number', trackingNum);
+                // 订单截图现在选填：有则传，无则跳过
+                if (screenshot) formData.append('screenshot', screenshot);
+
+                // 需求3：和商城/官网用户数据库互通（同域 localStorage.shopUser）
+                try {
+                    const userStr = localStorage.getItem('shopUser');
+                    if (userStr) {
+                        const u = JSON.parse(userStr);
+                        if (u && typeof u === 'object') {
+                            if (u.id) formData.append('user_id', String(u.id));
+                            if (u.phone) formData.append('user_phone', String(u.phone));
+                            if (u.username) formData.append('user_name', String(u.username));
+                        }
+                    }
+                } catch (_) {}
+
+                try {
+                    const res = await fetch('/api/warranty/apply', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        activateSuccess.classList.remove('hidden');
+                        activateOrderInput.value = '';
+                        if (activateTrackingInput) activateTrackingInput.value = '';
+                        activateScreenshot.value = '';
+                    } else {
+                        activateError.textContent = data.message || '提交失败，请重试';
+                        activateError.classList.remove('hidden');
+                    }
+                } catch (err) {
+                    activateError.textContent = '网络错误，请稍后重试';
+                    activateError.classList.remove('hidden');
+                }
+            });
+
+            // 回车确认激活
+            activateOrderInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    activateForm.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // 查询质保
+            confirmQueryBtn.addEventListener('click', async () => {
+                const orderNum = queryOrderInput ? queryOrderInput.value.trim() : '';
+                const trackingNum = queryTrackingInput ? queryTrackingInput.value.trim() : '';
+                queryResult.classList.add('hidden');
+                queryNotFound.classList.add('hidden');
+
+                try {
+                    let url = '/api/warranty/query';
+                    const qp = new URLSearchParams();
+                    if (orderNum) qp.append('order_number', orderNum);
+                    if (trackingNum) qp.append('tracking_number', trackingNum);
+
+                    // 需求3：已登录账号 → 自动按用户查绑定质保
+                    try {
+                        const userStr = localStorage.getItem('shopUser');
+                        if (userStr) {
+                            const u = JSON.parse(userStr);
+                            if (u && typeof u === 'object') {
+                                if (u.id) qp.append('user_id', String(u.id));
+                                if (u.phone) qp.append('user_phone', String(u.phone));
+                            }
+                        }
+                    } catch (_) {}
+
+                    const qs = qp.toString();
+                    if (qs) url += '?' + qs;
+
+                    const res = await fetch(url);
+                    const data = await res.json();
+
+                    if (data.success && data.found) {
+                        queryResult.classList.remove('hidden');
+                        const d = data.data;
+                        queryOrderNum.textContent = d.order_number ? d.order_number : '—';
+                        queryTrackingNum.textContent = d.tracking_number ? d.tracking_number : '—';
+                        queryPlatform.textContent = d.platform || '-';
+                        queryDate.textContent = d.purchase_date || '-';
+                        warrantyStatusText.textContent = '质保有效';
+                        queryStatus.textContent = '有效';
+                        queryActivateDate.textContent = d.activate_date || '-';
+                        queryExpireDate.textContent = d.expire_date || '-';
+                        queryRemainingDays.textContent = d.remaining_days || '-';
+
+                        if (data.ip_sync || data.user_sync) {
+                            if (d.order_number && queryOrderInput) queryOrderInput.value = d.order_number;
+                            if (d.tracking_number && queryTrackingInput) queryTrackingInput.value = d.tracking_number;
+                        }
+                    } else {
+                        queryNotFound.classList.remove('hidden');
+                        if (data.pending) {
+                            const notFoundTitle = queryNotFound.querySelector('.font-medium');
+                            notFoundTitle.textContent = '订单审核中';
+                            const notFoundDesc = queryNotFound.querySelector('.text-gray-600');
+                            notFoundDesc.textContent = '该订单正在审核中，请耐心等待，5个工作日内完成审核';
+                        }
+                    }
+                } catch (err) {
+                    queryNotFound.classList.remove('hidden');
+                    const notFoundTitle = queryNotFound.querySelector('.font-medium');
+                    notFoundTitle.textContent = '查询失败';
+                    const notFoundDesc = queryNotFound.querySelector('.text-gray-600');
+                    notFoundDesc.textContent = '网络错误，请稍后重试';
+                }
+            });
+
+            // 页面加载时自动尝试通过IP查询质保信息
+            window.addEventListener('load', () => {
+                // 仅当在查询页面时自动尝试
+            });
+
+            // 回车确认查询
+            queryOrderInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    confirmQueryBtn.click();
+                }
+            });
+
+            backBtn.addEventListener('click', () => {
+                aftersalesPage.classList.add('hidden');
+                previewPage.classList.add('hidden');
+                homePage.classList.remove('hidden');
+                consultSection.classList.remove('hidden');
+                homePage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            techAdvisorBtn.addEventListener('click', () => {
+                qrModal.classList.remove('hidden');
+            });
+
+            closeQrBtn.addEventListener('click', () => {
+                qrModal.classList.add('hidden');
+            });
+
+            qrModal.addEventListener('click', (e) => {
+                if (e.target === qrModal) {
+                    qrModal.classList.add('hidden');
+                }
+            });
+
+            // 初始化显示首页和商品咨询页面
+            homePage.classList.remove('hidden');
+            consultSection.classList.remove('hidden');
+
+            aftersalesForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const aftersalesType = document.getElementById('aftersales-type').value;
+                const riskText = '售后申请通过后，我们将为您呼叫物流上门取件。\n\n商品将会进行返厂检测，如果确实为商品本身问题，我们将会为您进行' + aftersalesType + '。如果检测后发现商品无质量问题我们将到付退回，并且您可能需要支付相应运费。';
+                riskContent.textContent = riskText;
+                
+                // 更新同意时间
+                const agreeTimeElement = document.getElementById('agree-time');
+                if (agreeTimeElement) {
+                    agreeTimeElement.textContent = new Date().toLocaleString('zh-CN');
+                }
+                
+                riskModal.classList.remove('hidden');
+            });
+
+            agreeRiskBtn.addEventListener('click', () => {
+                // 添加同意时间
+                const agreeTime = new Date().toLocaleString('zh-CN');
+                
+                riskModal.classList.add('hidden');
+                aftersalesPage.classList.add('hidden');
+                previewPage.classList.remove('hidden');
+                
+                const aftersalesType = document.getElementById('aftersales-type').value;
+                const purchasePlatform = document.getElementById('purchase-platform').value;
+                const orderNumber = document.getElementById('order-number').value;
+                const purchaseDate = document.getElementById('purchase-date').value;
+                const problemDescription = document.getElementById('problem-description').value;
+                const province = document.getElementById('province').value;
+                const city = document.getElementById('city').value;
+                const district = document.getElementById('district').value;
+                const streetAddress = document.getElementById('street-address').value;
+                const phone = document.getElementById('phone').value;
+
+                // 处理上传的图片
+                const orderScreenshot = document.getElementById('order-screenshot').files[0];
+                const unboxingVideo = document.getElementById('unboxing-video').files;
+                const cableFront = document.getElementById('cable-front').files[0];
+                const cableSide = document.getElementById('cable-side').files[0];
+                const cableBack = document.getElementById('cable-back').files[0];
+                const cableDetail = document.getElementById('cable-detail').files[0];
+                const additionalFiles = document.getElementById('additional-files').files;
+
+                let previewHTML = '<div><span class="font-medium">售后方式：</span>' + aftersalesType + '</div>' +
+                    '<div><span class="font-medium">购买平台：</span>' + purchasePlatform + '</div>' +
+                    '<div><span class="font-medium">订单编号：</span>' + orderNumber + '</div>' +
+                    '<div><span class="font-medium">购买时间：</span>' + purchaseDate + '</div>' +
+                    '<div><span class="font-medium">问题描述：</span>' + problemDescription + '</div>' +
+                    '<div><span class="font-medium">收货地址：</span>' + province + city + district + streetAddress + '</div>' +
+                    '<div><span class="font-medium">联系电话：</span>' + phone + '</div>';
+
+                // 添加图片预览
+                if (orderScreenshot) {
+                    previewHTML += '<div class="mt-4"><span class="font-medium">订单截图：</span><div class="mt-2 flex flex-wrap gap-2"><img src="' + URL.createObjectURL(orderScreenshot) + '" class="w-32 h-32 object-cover rounded" alt="订单截图"></div></div>';
+                }
+
+                if (cableFront) {
+                    previewHTML += '<div class="mt-4"><span class="font-medium">数据线图片：</span><div class="mt-2 flex flex-wrap gap-2">';
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableFront) + '" class="w-32 h-32 object-cover rounded" alt="正面"><p class="text-xs mt-1">正面</p></div>';
+                }
+
+                if (cableSide) {
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableSide) + '" class="w-32 h-32 object-cover rounded" alt="侧面"><p class="text-xs mt-1">侧面</p></div>';
+                }
+
+                if (cableBack) {
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableBack) + '" class="w-32 h-32 object-cover rounded" alt="探针处"><p class="text-xs mt-1">探针处</p></div>';
+                }
+
+                if (cableDetail) {
+                    previewHTML += '<div class="text-center"><img src="' + URL.createObjectURL(cableDetail) + '" class="w-32 h-32 object-cover rounded" alt="细节"><p class="text-xs mt-1">细节</p></div>';
+                }
+
+                if (cableFront) {
+                    previewHTML += '</div></div>';
+                }
+
+                const previewDetails = document.getElementById('preview-details');
+                previewDetails.innerHTML = previewHTML;
+
+                const previewRiskContent = document.getElementById('preview-risk-content');
+                previewRiskContent.textContent = '售后申请通过后，我们将为您呼叫物流上门取件。\n\n商品将会进行返厂检测，如果确实为商品本身问题，我们将会为您进行' + aftersalesType + '。如果检测后发现商品无质量问题我们将到付退回，并且您可能需要支付相应运费。';
+
+                // 添加同意时间
+                const previewRiskContainer = document.querySelector('#preview-page .bg-yellow-50');
+                if (previewRiskContainer) {
+                    const timeElement = document.createElement('div');
+                    timeElement.className = 'mt-2 text-sm text-gray-500 text-right';
+                    timeElement.textContent = agreeTime;
+                    previewRiskContainer.appendChild(timeElement);
+                }
+
+                previewPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+            saveImageBtn.addEventListener('click', async () => {
+                try {
+                    // 使用html2canvas库将页面转换为图片
+                    if (typeof html2canvas === 'undefined') {
+                        // 动态加载html2canvas库
+                        const script = document.createElement('script');
+                        script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+                        document.head.appendChild(script);
+                        
+                        script.onload = async () => {
+                            await captureAndSave();
+                        };
+                    } else {
+                        await captureAndSave();
+                    }
+                } catch (error) {
+                    console.error('保存图片失败:', error);
+                    alert('保存图片失败，请重试');
+                }
+            });
+
+            async function captureAndSave() {
+                const previewContent = document.getElementById('preview-content');
+                const riskContent = document.querySelector('#preview-page .bg-yellow-50');
+                
+                // 创建一个容器来包含所有内容
+                const container = document.createElement('div');
+                container.style.backgroundColor = '#f9f9f9';
+                container.style.padding = '20px';
+                container.style.width = '100%';
+                container.style.maxWidth = '800px';
+                container.style.margin = '0 auto';
+                
+                // 复制内容到容器
+                container.appendChild(previewContent.cloneNode(true));
+                container.appendChild(riskContent.cloneNode(true));
+                
+                // 将容器添加到页面
+                document.body.appendChild(container);
+                
+                // 使用html2canvas捕获容器
+                const canvas = await html2canvas(container, {
+                    scale: 2, // 提高清晰度
+                    useCORS: true, // 允许跨域图片
+                    logging: false
+                });
+                
+                // 移除临时容器
+                document.body.removeChild(container);
+                
+                // 将canvas转换为图片并下载
+                const link = document.createElement('a');
+                link.download = '售后申请_' + new Date().toISOString().slice(0, 10) + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+
+            const provinceInput = document.getElementById('province');
+            const cityInput = document.getElementById('city');
+            const districtInput = document.getElementById('district');
+
+            const parseAddressBtn = document.getElementById('parse-address-btn');
+            const addressParser = document.getElementById('address-parser');
+
+            parseAddressBtn.addEventListener('click', function() {
+                const addressText = addressParser.value;
+                if (!addressText) {
+                    alert('请先粘贴地址信息');
+                    return;
+                }
+
+                const phoneMatch = addressText.match(/1[3-9]\d{9}/);
+                if (phoneMatch) {
+                    document.getElementById('phone').value = phoneMatch[0];
+                }
+
+                const provincePattern = /(北京市|上海市|天津市|重庆市|河北省|山西省|辽宁省|吉林省|黑龙江省|江苏省|浙江省|安徽省|福建省|江西省|山东省|河南省|湖北省|湖南省|广东省|海南省|四川省|贵州省|云南省|陕西省|甘肃省|青海省|台湾省|内蒙古自治区|广西壮族自治区|西藏自治区|宁夏回族自治区|新疆维吾尔自治区|香港特别行政区|澳门特别行政区)/;
+                const provinceMatch = addressText.match(provincePattern);
+                if (provinceMatch) {
+                    provinceInput.value = provinceMatch[0];
+                }
+
+                const cityPattern = /(市辖区|县|自治县|旗|自治旗|特区|林区|市|盟|自治盟)/;
+                const cityMatch = addressText.match(cityPattern);
+                if (cityMatch) {
+                    const cityIndex = addressText.indexOf(cityMatch[0]);
+                    if (cityIndex > 0) {
+                        let cityText = addressText.substring(provinceMatch ? provinceMatch.index + provinceMatch[0].length : 0, cityIndex + cityMatch[0].length);
+                        cityInput.value = cityText.trim();
+                    }
+                }
+
+                const districtPattern = /(区|县|自治县|旗|自治旗|街道|镇|乡|民族乡|苏木|民族苏木)/;
+                const districtMatch = addressText.match(districtPattern);
+                if (districtMatch) {
+                    const districtIndex = addressText.indexOf(districtMatch[0]);
+                    if (districtIndex > 0) {
+                        let districtText = addressText.substring(cityInput.value ? addressText.indexOf(cityInput.value) + cityInput.value.length : 0, districtIndex + districtMatch[0].length);
+                        districtInput.value = districtText.trim();
+                    }
+                }
+
+                let streetAddress = addressText;
+                if (provinceInput.value) {
+                    streetAddress = streetAddress.replace(provinceInput.value, '');
+                }
+                if (cityInput.value) {
+                    streetAddress = streetAddress.replace(cityInput.value, '');
+                }
+                if (districtInput.value) {
+                    streetAddress = streetAddress.replace(districtInput.value, '');
+                }
+                if (phoneMatch) {
+                    streetAddress = streetAddress.replace(phoneMatch[0], '');
+                }
+                streetAddress = streetAddress.replace(/[，,。.、\s]+/g, ' ').trim();
+                document.getElementById('street-address').value = streetAddress;
+            });
+
+            // 智能问答搜索功能
+            let qaData = [];
+            try {
+                qaData = JSON.parse(localStorage.getItem('kdxzhx_qa_data')) || [];
+            } catch (e) {
+                qaData = [];
+                localStorage.setItem('kdxzhx_qa_data', JSON.stringify([]));
+            }
+
+            // 预设的小天才问答数据
+            const presetQaData = [
+                {
+                    Q: "小天才6点数据线的使用方法/如何使用/怎么用",
+                    A: "将手表后面的SIM卡后盖拔开，把6点线的6根针对准上面的触点（线朝左边）用力插上即可【不可能存在插不上的情况】",
+                    image: null
+                },
+                {
+                    Q: "短接/9008/数据线背面按件是干什么的/9008模式怎么进入/电脑上不显示端口怎么办",
+                    A: "按照视频教程进入烧录连接手表页面时，请同时长按 数据线背部按键 和 手表电源键 进入9008模式(期间不要松手，直到电脑上显示连接成功)",
+                    image: null
+                },
+                {
+                    Q: "小天才Z9 Z10刷机文件教程领取",
+                    A: "核对码:确收好评后找购买客服领取",
+                    image: null
+                },
+                {
+                    Q: "验证异常",
+                    A: "是运行版本太低被官方云控了",
+                    image: null
+                },
+                {
+                    Q: "刷机电脑配置/系统要求（mac）",
+                    A: "只要电脑为W10以上系统即可，mac可能需安装虚拟机",
+                    image: null
+                },
+                {
+                    Q: "手表连接不上电脑",
+                    A: "请先确认您已按照视频教程下载并打开完每一份文件/应用，然后在短接页面下同时长按数据线背部按键和手表电源键进入9008模式。",
+                    image: null
+                },
+                {
+                    Q: "小天才6点数据线是什么/有什么用/功能介绍",
+                    A: `6点线主要是用来给手表刷机，root等，来安装微信 qq等第三方应用
+1.使用微信手表版需要购买license码才能使用 15元
+2.高清视频教程20元
+*为了防止官方封，所有视频教程都会有点模糊
+3.小天才Z11数据线 180元
+4.全系列（不包含新品）破解文件 35元
+购买请联系客服`,
+                    image: null
+                },
+                {
+                    Q: "为什么我的手表打开 ADB 需要校验码？",
+                    A: "小天才开发人员打开手表调试功能的密码，可以使用算码工具算码（http://jym.ansek.cn/），也可进行短接操作直接进行超级恢复",
+                    image: null
+                },
+                {
+                    Q: "为什么手表连不上电脑？",
+                    A: "其实这个原因因素很多，目前常见的小天才开了 adb 是未授权的状态，届时需要重启才行，但是重启还会关上，未授权的端口一般工具是识别不到或无法使用的，从设备管理器里查看一下是否有 ADB 安卓的端口，有的话直接进行 adb reboot edl 然后超级恢复即可。 拓展:如果手表以前开过 adb 然后关上可能再打开就没有端口了，没开的需要断网开 adb 比较好，开了之后被关上 adb 再打开没有端口了的恢复出厂设置然后再断网开就有未授权的端口了。 再次拓展:降级后的 adb 就可以是正常的授权调试端口 90B8 了",
+                    image: null
+                },
+                {
+                    Q: "短接是什么？如何短接？短接教程",
+                    A: "短接指连通高通设备上的两个 9008 触点使设备进入 9008 模式的操作，该模式下可以读写手表分区，进行系统恢复等，是小天才手表 root 的一个重要模式。短接教程如下： 0 管理员打开超恢并开始 1 按下电源键 2 延迟 0.3s 3 用镊子或螺丝刀接上两个金属触点（sim 卡槽内）（z7s z9 就按六点线上面的按钮） #等待超恢识别 4 松开电源， 5 等待进度条到 5%以上后拿下镊子",
+                    image: null
+                },
+                {
+                    Q: "为什么说手表砖了或者一些功能异常时需要短接？什么情况下需要短接？",
+                    A: "前面说到 9008 模式下可以进行系统恢复，也就是我们说的超恢（超级系统恢复）可以恢复因异常损坏的手表分区等，而短接只是进入 9008 的最可靠方式，如手表可连接 adb，可在 adb 环境文件夹下的 cmd 命令行内输入\"adb reboot edl\"并回车，手表会进入 9008，这时候也可以打开超级恢复进行系统恢复。",
+                    image: null
+                },
+                {
+                    Q: "价格多少钱/费用/价位",
+                    A: `小天才6点数据线相关产品价格：
+1. 小天才6点数据线：基础款（联系客服询价）
+2. 小天才Z11数据线：180元
+3. 微信手表版license码：15元
+4. 高清视频教程：20元
+5. 全系列破解文件（不包含新品）：35元
+购买请联系客服获取最新价格和优惠。`,
+                    image: null
+                },
+                {
+                    Q: "质保/售后/保修/30天质保",
+                    A: `我们提供30天质保服务。如果您的数据线出现质量问题，可以通过售后申请页面提交维修、换新或退货退款申请。
+售后流程：
+1. 填写售后申请表单
+2. 上传相关证据（订单截图、开箱视频、数据线图片等）
+3. 等待审核
+4. 审核通过后，我们将安排物流上门取件
+商品将进行返厂检测，如果确实为商品本身问题，我们将按照您选择的售后方式处理。`,
+                    image: null
+                },
+                {
+                    Q: "怎么激活质保/质保怎么用",
+                    A: `激活质保步骤：
+1. 点击首页"30天质保"按钮
+2. 选择"激活质保"
+3. 输入订单编号
+4. 上传订单截图
+5. 点击提交审核
+客服会在5个工作日内完成审核，审核通过后质保自动生效。`,
+                    image: null
+                },
+                {
+                    Q: "怎么查询质保/质保查询",
+                    A: `查询质保步骤：
+1. 点击首页"30天质保"按钮
+2. 选择"质保查询"
+3. 输入订单编号（同一IP设备也会自动识别）
+4. 点击查询即可查看质保状态、激活时间、到期时间等信息`,
+                    image: null
+                },
+                {
+                    Q: "支持哪些手表型号/兼容什么型号/适用机型",
+                    A: "小天才6点数据线适用于小天才系列手表，包括但不限于Z7S、Z9、Z10、Z11等型号。如果您不确定是否兼容您的手表型号，请联系客服咨询。",
+                    image: null
+                },
+                {
+                    Q: "驱动安装/电脑驱动/端口驱动",
+                    A: "如果电脑无法识别手表端口，请先安装高通9008驱动。安装完成后重启电脑再尝试连接。如果仍然无法识别，请更换USB接口或更换数据线尝试。",
+                    image: null
+                },
+                {
+                    Q: "root是什么/root有什么用/可以干什么",
+                    A: "Root是获取手表系统最高权限的操作。Root后可以：1.安装微信、QQ等第三方应用 2.自定义手表主题和界面 3.卸载系统预装应用 4.使用更多高级功能。注意：root有一定风险，请谨慎操作。",
+                    image: null
+                },
+                {
+                    Q: "变砖了怎么办/手表开不了机/黑屏了",
+                    A: "如果手表变砖或开不了机，可以尝试通过9008模式进行超级恢复（超恢）来救砖。步骤：1.同时长按数据线背部按键和手表电源键进入9008模式 2.打开超级恢复工具 3.按照提示进行系统恢复。如果操作有困难，建议联系客服获取帮助。",
+                    image: null
+                },
+                {
+                    Q: "微信怎么装/QQ怎么装/第三方应用安装",
+                    A: "手表root后才能安装微信、QQ等第三方应用。微信手表版需要额外购买license码（15元）才能使用。具体安装教程请参考购买后领取的视频教程。",
+                    image: null
+                },
+                {
+                    Q: "好评后有什么/好评送什么",
+                    A: "好评后可以联系客服领取：1.高清视频教程 2.核对码（用于激活质保和领取刷机文件） 3.技术支持服务",
+                    image: null
+                },
+                {
+                    Q: "发货时间/多久发货/快递",
+                    A: "一般下单后24小时内发货，默认发中通快递，偏远地区可能稍有延迟。具体发货时间以实际订单为准。",
+                    image: null
+                },
+                {
+                    Q: "数据线插不上/插不进去/怎么插",
+                    A: "将手表后面的SIM卡后盖拔开，把6点线的6根针对准上面的触点（线朝左边）用力插上即可。注意：不可能存在插不上的情况，请确认方向正确后稍微用力插入。",
+                    image: null
+                },
+                {
+                    Q: "超级恢复是什么/超恢怎么用",
+                    A: "超级恢复（简称超恢）是小天才手表在9008模式下进行系统恢复的工具。可以用来救砖、降级、刷机等操作。使用方法：1.进入9008模式 2.打开超恢工具 3.选择对应的固件 4.等待恢复完成。",
+                    image: null
+                },
+                {
+                    Q: "降级怎么弄/怎么降级/系统降级",
+                    A: "降级需要先进入9008模式，然后使用超级恢复工具刷入低版本固件。注意：降级有一定风险，建议先备份重要数据，并且严格按照教程操作。",
+                    image: null
+                }
+            ];
+
+            // 自动导入预设数据
+            function importPresetData() {
+                const existingQuestions = qaData.map(item => item.Q);
+                let newDataAdded = false;
+
+                presetQaData.forEach(presetItem => {
+                    if (!existingQuestions.includes(presetItem.Q)) {
+                        qaData.push(presetItem);
+                        newDataAdded = true;
+                    }
+                });
+
+                if (newDataAdded) {
+                    localStorage.setItem('kdxzhx_qa_data', JSON.stringify(qaData));
+                }
+            }
+
+            // 需求4：QA 数据库弹窗（商品咨询最右按钮点击 → 查看全部预设问答）
+            (function initQaDatabaseModal() {
+                const modal = document.getElementById('qa-database-modal');
+                const openBtn = document.getElementById('show-all-qa-btn');
+                const closeBtn = document.getElementById('close-qa-db-btn');
+                const listEl = document.getElementById('qa-db-list');
+                const countEl = document.getElementById('qa-db-count');
+                const searchEl = document.getElementById('qa-db-search');
+                if (!modal || !openBtn || !closeBtn || !listEl || !countEl || !searchEl) return;
+
+                function esc(s) {
+                    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                }
+                function mergeList() {
+                    const preset = Array.isArray(presetQaData) ? presetQaData : [];
+                    const custom = Array.isArray(qaData) ? qaData : [];
+                    const seen = new Set();
+                    const out = [];
+                    preset.forEach(it => { if (it && it.Q && !seen.has(it.Q)) { seen.add(it.Q); out.push(it); } });
+                    custom.forEach(it => { if (it && it.Q && !seen.has(it.Q)) { seen.add(it.Q); out.push(it); } });
+                    return out;
+                }
+                function render(list) {
+                    countEl.textContent = String(list.length);
+                    if (!list.length) {
+                        listEl.innerHTML = '<div class="text-center py-12 text-gray-400">暂无可展示的问答</div>';
+                        return;
+                    }
+                    listEl.innerHTML = list.map((it, idx) => `
+                        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                            <button type="button" class="qa-db-q-btn w-full px-5 py-4 text-left flex items-start gap-3 hover:bg-emerald-50/40 transition-colors">
+                                <div class="qa-db-chevron mt-0.5 w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 text-xs font-bold flex items-center justify-center shrink-0 transition-transform">
+                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">Q${idx + 1}</span>
+                                    </div>
+                                    <div class="font-medium text-gray-800 leading-relaxed whitespace-pre-line">${esc(it.Q)}</div>
+                                </div>
+                            </button>
+                            <div class="qa-db-a-wrap hidden px-5 pb-5 pl-14">
+                                <div class="pt-1 border-t border-dashed border-gray-100">
+                                    <div class="inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-medium mb-2">
+                                        <i class="fa-solid fa-reply text-[10px]"></i> 回答
+                                    </div>
+                                    <div class="text-sm text-gray-700 leading-7 whitespace-pre-line">${esc(it.A)}</div>
+                                    ${it.image ? `<div class="mt-3"><img src="${esc(it.image)}" class="max-h-60 rounded-lg border border-gray-100"></div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                    listEl.querySelectorAll('.qa-db-q-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const item = btn.closest('div.bg-white');
+                            if (!item) return;
+                            const a = item.querySelector('.qa-db-a-wrap');
+                            const che = item.querySelector('.qa-db-chevron');
+                            if (!a || !che) return;
+                            const hidden = a.classList.contains('hidden');
+                            a.classList.toggle('hidden', !hidden);
+                            che.style.transform = hidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                        });
+                    });
+                }
+                function open() {
+                    importPresetData();
+                    searchEl.value = '';
+                    render(mergeList());
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    document.body.style.overflow = 'hidden';
+                }
+                function close() {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    document.body.style.overflow = '';
+                }
+                openBtn.addEventListener('click', open);
+                closeBtn.addEventListener('click', close);
+                modal.addEventListener('click', e => { if (e.target === modal) close(); });
+                document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+                let t = null;
+                searchEl.addEventListener('input', () => {
+                    clearTimeout(t);
+                    t = setTimeout(() => {
+                        const kw = (searchEl.value || '').trim().toLowerCase();
+                        const all = mergeList();
+                        if (!kw) return render(all);
+                        render(all.filter(it => String(it.Q || '').toLowerCase().includes(kw) || String(it.A || '').toLowerCase().includes(kw)));
+                    }, 120);
+                });
+            })();
+
+            // 简化版AI语义库
+            const synonymMap = {
+                "刷机": ["刷系统", "刷固件", "刷ROM", "刷机子"],
+                "怎么": ["如何", "怎样", "咋"],
+                "解决": ["处理", "搞定", "修复"],
+                "问题": ["故障", "错误", "异常"],
+                "教程": ["指南", "方法", "步骤"],
+                "安装": ["装", "配置"],
+                "删除": ["移除", "删掉"],
+                "恢复": ["还原", "复原"],
+                "备份": ["保存", "导出"]
+            };
+
+            // 核心搜索函数
+            function preprocessText(text) {
+                if (!text) return '';
+                const punctuation = /[！？。，；：""''()()【】{}、·~！@#￥%……&*（）——+=-]/g;
+                const space = /\s+/g;
+                return text.toLowerCase().replace(punctuation, '').replace(space, '');
+            }
+
+            function expandKeywords(text) {
+                if (!text) return '';
+                let expandedText = text;
+                Object.keys(synonymMap).forEach(key => {
+                    synonymMap[key].forEach(synonym => {
+                        expandedText = expandedText.replace(new RegExp(synonym, 'g'), key);
+                    });
+                });
+                return expandedText;
+            }
+
+            function calculateAISimilarity(keyword, target) {
+                const processedKeyword = preprocessText(keyword);
+                const processedTarget = preprocessText(target);
+                
+                const expandedKeyword = expandKeywords(processedKeyword);
+                const expandedTarget = expandKeywords(processedTarget);
+                
+                let matchCount = 0;
+                const maxLen = Math.max(expandedKeyword.length, expandedTarget.length);
+                if (maxLen === 0) return 0;
+                
+                for (let i = 0; i < Math.min(expandedKeyword.length, expandedTarget.length); i++) {
+                    if (expandedKeyword[i] === expandedTarget[i]) matchCount++;
+                }
+                let baseScore = matchCount / maxLen;
+                
+                if (expandedTarget.includes(expandedKeyword)) baseScore += 0.5;
+                
+                Object.keys(synonymMap).forEach(key => {
+                    if (expandedKeyword.includes(key) && expandedTarget.includes(key)) {
+                        baseScore += 0.2;
+                    }
+                });
+                
+                return Math.min(1, baseScore);
+            }
+
+            function performSearch() {
+                const keyword = document.getElementById('searchInput').value.trim();
+                
+                if (!keyword) {
+                    alert('请输入搜索关键词');
+                    return;
+                }
+                
+                // 隐藏商品咨询页面的KDXZHX标题
+                const consultPageTitle = document.querySelector('#consult h1');
+                if (consultPageTitle) {
+                    consultPageTitle.style.opacity = '0';
+                    consultPageTitle.style.transition = 'opacity 0.3s ease';
+                }
+                
+                // 关键词包含匹配
+                const lowerKeyword = keyword.toLowerCase();
+                const matchedResults = qaData
+                    .map(item => {
+                        const qText = (item.Q || '').toLowerCase();
+                        const aText = (item.A || '').toLowerCase();
+                        const qMatch = qText.includes(lowerKeyword);
+                        const aMatch = aText.includes(lowerKeyword);
+                        let score = 0;
+                        if (qMatch) score += 10;
+                        if (aMatch) score += 3;
+                        return { ...item, score };
+                    })
+                    .filter(item => item.score > 0)
+                    .sort((a, b) => b.score - a.score);
+                
+                saveSearchHistory(keyword);
+                displayResults(matchedResults);
+                
+                // 恢复标题
+                if (consultPageTitle) {
+                    setTimeout(() => {
+                        consultPageTitle.style.opacity = '1';
+                    }, 100);
+                }
+            }
+
+            function displayResults(results) {
+                const resultsSection = document.getElementById('resultsSection');
+                const resultsContainer = document.getElementById('resultsContainer');
+                
+                if (resultsSection && resultsContainer) {
+                    resultsSection.classList.remove('hidden');
+                    resultsContainer.innerHTML = '';
+                    
+                    if (results.length === 0) {
+                        resultsContainer.innerHTML = `
+                            <div class="bg-white rounded-xl p-8 text-left">
+                                <i class="fa-solid fa-magnifying-glass text-4xl text-gray-400 mb-4"></i>
+                                <p class="text-gray-600 text-lg">未找到相关内容</p>
+                                <p class="text-gray-500 text-sm mt-2">请尝试其他关键词，或联系客服咨询</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    results.forEach((item, index) => {
+                        const resultItem = document.createElement('div');
+                        const highlightClass = index === 0 ? 'border-2 border-blue-500 bg-blue-50' : 'border border-gray-200';
+                        resultItem.className = `bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer ${highlightClass} text-left`;
+                        
+                        resultItem.innerHTML = `
+                            <h3 class="text-xl font-semibold mb-2">${item.Q || ''}</h3>
+                            <p class="text-gray-600 line-clamp-4">${item.A || ''}</p>
+                            ${item.image ? '<div class="mt-3"><i class="fa-solid fa-image text-gray-400 mr-2"></i>包含关联图片</div>' : ''}
+                            <div class="mt-4 text-blue-600 hover:text-blue-800 transition-colors">
+                                <span>查看详情 <i class="fa-solid fa-chevron-right text-xs"></i></span>
+                            </div>
+                        `;
+                        
+                        resultItem.addEventListener('click', () => {
+                            const detailModal = document.createElement('div');
+                            detailModal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+                            detailModal.innerHTML = `
+                                <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[80vh] overflow-auto p-8 m-4">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <h3 class="text-2xl font-semibold">${item.Q || ''}</h3>
+                                        <button class="close-modal text-gray-400 hover:text-gray-600 transition-colors">
+                                            <i class="fa-solid fa-xmark text-xl"></i>
+                                        </button>
+                                    </div>
+                                    <hr class="mb-6 border-gray-200">
+                                    <div class="text-lg leading-relaxed whitespace-pre-line">${item.A || ''}</div>
+                                </div>
+                            `;
+                            document.body.appendChild(detailModal);
+                            document.body.style.overflow = 'hidden';
+                            
+                            detailModal.querySelector('.close-modal').addEventListener('click', () => {
+                                document.body.removeChild(detailModal);
+                                document.body.style.overflow = '';
+                            });
+                        });
+                        
+                        resultsContainer.appendChild(resultItem);
+                    });
+                }
+            }
+
+            // 搜索历史功能
+            function getSearchHistory() {
+                try {
+                    return JSON.parse(localStorage.getItem('kdxzhx_search_history')) || [];
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            function saveSearchHistory(keyword) {
+                if (!keyword) return;
+                let history = getSearchHistory();
+                history = history.filter(item => item !== keyword);
+                history.unshift(keyword);
+                history = history.slice(0, 5);
+                localStorage.setItem('kdxzhx_search_history', JSON.stringify(history));
+                displaySearchHistory();
+            }
+
+            function displaySearchHistory() {
+                const history = getSearchHistory();
+                const historyContainer = document.getElementById('historyContainer');
+                const searchHistorySection = document.getElementById('searchHistory');
+                
+                if (historyContainer && searchHistorySection) {
+                    if (history.length > 0) {
+                        searchHistorySection.classList.remove('hidden');
+                        historyContainer.innerHTML = '';
+                        history.forEach(item => {
+                            const historyItem = document.createElement('button');
+                            historyItem.className = 'px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors';
+                            historyItem.textContent = item;
+                            historyItem.addEventListener('click', () => {
+                                document.getElementById('searchInput').value = item;
+                                performSearch();
+                            });
+                            historyContainer.appendChild(historyItem);
+                        });
+                    } else {
+                        searchHistorySection.classList.add('hidden');
+                    }
+                }
+            }
+
+            function clearSearchHistory() {
+                localStorage.removeItem('kdxzhx_search_history');
+                displaySearchHistory();
+            }
+
+            // 绑定热门搜索点击事件
+            const hotSearches = document.getElementById('hotSearches');
+            if (hotSearches) {
+                hotSearches.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        document.getElementById('searchInput').value = e.target.textContent;
+                        performSearch();
+                    }
                 });
             }
 
-            // 教程折叠
-            document.querySelectorAll('.tutorial-card .tutorial-header').forEach(h => {
-                h.addEventListener('click', () => {
-                    const card = h.closest('.tutorial-card'); if (!card) return;
-                    const content = card.querySelector('.tutorial-content');
-                    const arrow = card.querySelector('.tutorial-arrow');
-                    if (content) content.classList.toggle('hidden');
-                    if (arrow) arrow.style.transform = content && !content.classList.contains('hidden') ? 'rotate(180deg)' : '';
-                });
-            });
+            // 绑定清除历史记录事件
+            const clearHistoryBtn = document.getElementById('clearHistory');
+            if (clearHistoryBtn) {
+                clearHistoryBtn.addEventListener('click', clearSearchHistory);
+            }
 
-            // 风险提示 + 预览页 + 售后地址解析（略简实现）
-            // ...
-
-            // 商品咨询搜索
+            // 绑定搜索事件
             const searchBtn = document.getElementById('searchBtn');
             const searchInput = document.getElementById('searchInput');
-            if (searchBtn && searchInput) {
-                searchBtn.addEventListener('click', () => doSearch(searchInput.value));
-                searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(searchInput.value); });
-            }
-            const hotSearches = document.getElementById('hotSearches');
-            if (hotSearches) hotSearches.querySelectorAll('button').forEach(b => {
-                b.addEventListener('click', () => {
-                    const kw = (b.textContent || '').trim();
-                    if (searchInput) searchInput.value = kw;
-                    doSearch(kw);
+            if (searchBtn) searchBtn.addEventListener('click', performSearch);
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') performSearch();
                 });
-            });
-            const clearHist = document.getElementById('clearHistory');
-            if (clearHist) clearHist.addEventListener('click', () => { writeSearchHistory([]); displaySearchHistory(); });
+            }
 
-            // 导航登录
-            const navLoginBtn = document.getElementById('nav-login-btn');
-            if (navLoginBtn) navLoginBtn.addEventListener('click', () => navigateToAuth(''));
-            const navLogoutBtn = document.getElementById('nav-logout-btn');
-            if (navLogoutBtn) navLogoutBtn.addEventListener('click', () => { if (confirm('确定退出登录？')) logoutCurrentUser(); });
+            // 修改performSearch函数，添加搜索历史保存
+            const originalPerformSearch = performSearch;
+            performSearch = function() {
+                const keyword = document.getElementById('searchInput').value.trim();
+                if (keyword) {
+                    saveSearchHistory(keyword);
+                }
+                originalPerformSearch();
+            };
 
-            // 父窗口 postMessage：同步 shopUser
-            window.addEventListener('message', (evt) => {
-                try {
-                    const d = evt.data || {};
-                    if (d && d.type === 'SET_SHOP_USER') {
-                        writeShopUser(d.user || null);
-                        ensureUserSynced();
-                    }
-                } catch (e) {}
-            });
+            // 更多商品页面处理
+            const moreProductsBtn = document.getElementById('more-products-btn');
+            const backFromProductsBtn = document.getElementById('back-from-products-btn');
+            const moreProductsPage = document.getElementById('more-products');
+            
+            if (moreProductsBtn) {
+                moreProductsBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    homePage.classList.add('hidden');
+                    consultSection.classList.add('hidden');
+                    aftersalesPage.classList.add('hidden');
+                    previewPage.classList.add('hidden');
+                    moreProductsPage.classList.remove('hidden');
+                    moreProductsPage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
+            
+            if (backFromProductsBtn) {
+                backFromProductsBtn.addEventListener('click', () => {
+                    moreProductsPage.classList.add('hidden');
+                    homePage.classList.remove('hidden');
+                    consultSection.classList.remove('hidden');
+                    homePage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
 
-            // 二维码（技术顾问） & 风险 & 其它
-            const techBtn = document.getElementById('tech-advisor-btn');
-            if (techBtn) techBtn.addEventListener('click', () => { const m = document.getElementById('qr-modal'); if (m) m.classList.remove('hidden'); });
-            const closeQr = document.getElementById('close-qr-btn');
-            if (closeQr) closeQr.addEventListener('click', () => { const m = document.getElementById('qr-modal'); if (m) m.classList.add('hidden'); });
-        }
-
-        // ============ 启动逻辑 ============
-        document.addEventListener('DOMContentLoaded', async function () {
-            // 1) 启动入场动画
-            document.querySelectorAll('.animate-hidden').forEach((el, i) => {
-                setTimeout(() => {
-                    el.classList.remove('animate-hidden');
-                }, 60 * i);
-            });
-
-            // 2) 设备封禁检查（同页面展示级封禁，不阻止其它请求）
-            try {
-                const code = generateDeviceFingerprint();
-                const st = await checkDeviceBlocked(code);
-                if (st.blocked) showBlockedPage(code, st.reason);
-                // 把设备码挂在 window，便于需要时（如页面水印/投诉/反馈）读取
-                window.__DEVICE_CODE__ = code;
-            } catch (e) { /* ignore */ }
-
-            // 3) 同步用户登录态（与商城互通）
-            ensureUserSynced();
-
-            // 4) 初始化各功能模块
-            setupGeneralNavigation();
-            setupActivateForm();
-            setupQueryForm();
-            setupQADatabaseModal();
+            // 初始化
             importPresetData();
             displaySearchHistory();
         });
