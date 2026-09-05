@@ -31,6 +31,9 @@ dist/
 ehthumbs.db
 Thumbs.db
 
-# Warranty SQLite database
-backend/warranty.db
+# SQLite databases（所有本地数据库文件均不入库）
+backend/*.db
 backend/uploads/
+
+# TRAE 生成的分享包（临时产物）
+.trae-html-share-packages/

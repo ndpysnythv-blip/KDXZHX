@@ -463,6 +463,10 @@ def admin_logout():
 
 @app.route('/admin/list')
 def admin_list():
+    # 安全修复：后台页面必须登录，避免未授权访问审核数据
+    resp = admin_required()
+    if resp:
+        return resp
     status = request.args.get('status', 'pending')
     db = get_db()
 
@@ -483,6 +487,9 @@ def admin_list():
 
 @app.route('/admin/review/<int:app_id>', methods=['POST'])
 def admin_review(app_id):
+    # 安全修复：审核操作必须登录，防止未授权通过/拒绝质保申请
+    if not session.get('is_admin'):
+        return jsonify({'success': False, 'message': '未登录'}), 401
     action = request.form.get('action', '')
     note = request.form.get('note', '')
     platform = request.form.get('platform', '淘宝/天猫')
@@ -570,6 +577,10 @@ def admin_review(app_id):
 
 @app.route('/admin/orders')
 def admin_orders():
+    # 安全修复：已激活订单列表必须登录
+    resp = admin_required()
+    if resp:
+        return resp
     db = get_db()
     orders = db.execute('''
         SELECT * FROM warranty_orders ORDER BY created_at DESC
